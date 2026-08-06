@@ -1,0 +1,24 @@
+{
+  "name": "tweetbrainam",
+  "private": true,
+  "packageManager": "pnpm@10.14.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "boundaries": "depcruise apps packages --config .dependency-cruiser.cjs",
+    "check": "pnpm lint && pnpm typecheck && pnpm boundaries"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "dependency-cruiser": "^16.10.0",
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0"
+  }
+}

@@ -29,6 +29,7 @@ Append-only. Statuses: **accepted** · **superseded by Dxx** · **deprecated**. 
 | D16 (A10) | 2026-08-05 | pnpm + Turborepo monorepo with CI-enforced dependency boundaries | accepted | Shared types without publish overhead; boundaries keep the core clean |
 | D17 (A11) | 2026-08-06 | `PaymentProvider` port in core, adapters in `packages/payment`; **Paystack default** via `PAYMENT_PROVIDER`; Flutterwave/Stripe/Lemon Squeezy compatible; generic provider columns in DB | accepted | Provider choice varies by market (Paystack for NG/Africa launch) and is volatile; switching is env change + data migration. Supersedes the earlier Stripe-specific assumption |
 | D18 | 2026-08-06 | Comment-free, self-explanatory code as the default; comments only for external quirks/workarounds with links | accepted | Names and structure carry intent; narration comments rot and hide real signal |
+| D19 | 2026-08-06 | Biome (lint+format) + dependency-cruiser (boundary enforcement); root `compose.yaml` for `docker compose up` DX | accepted | One fast tool for lint/format; dependency-cruiser enforces R1/R2 boundaries that Biome can't express. Resolves the deferred lint-tooling decision |
 
 ## Deferred decisions (revisit when triggered)
 
@@ -39,4 +40,3 @@ Append-only. Statuses: **accepted** · **superseded by Dxx** · **deprecated**. 
 | Kubernetes | Container host (Railway/Fly/Render class) | Replica count or team size demands it |
 | Additional payment adapters | Paystack only | Market demand outside Paystack coverage |
 | SSE/streaming for generation status | 202 + polling | User-visible latency complaints |
-| Biome vs ESLint+Prettier | Decide in Phase 0 week 1 | — |
