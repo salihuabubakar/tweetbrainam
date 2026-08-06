@@ -1,9 +1,10 @@
 import { errorEnvelopeSchema } from "@tweetbrainam/contracts";
 import { describe, expect, it } from "vitest";
 import { createApp } from "./app";
+import { createStubDeps } from "./test/stub-deps";
 
 describe("app", () => {
-  const app = createApp();
+  const app = createApp(createStubDeps());
 
   it("serves healthz", async () => {
     const res = await app.request("/healthz");

@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/api-url";
 import { buttonVariants } from "@tweetbrainam/ui";
 
 export const metadata = { title: "Sign in" };
@@ -11,7 +12,10 @@ export default function LoginPage() {
           Sign in with your X account. We only read your posts to learn your voice — we never post
           without your approval.
         </p>
-        <a href="/v1/auth/x/start" className={buttonVariants({ size: "lg", className: "w-full" })}>
+        <a
+          href={`${apiUrl}/v1/auth/x/start`}
+          className={buttonVariants({ size: "lg", className: "w-full" })}
+        >
           Continue with X
         </a>
       </div>
