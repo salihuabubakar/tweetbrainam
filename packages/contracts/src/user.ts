@@ -5,7 +5,7 @@ export const contentGoals = ["grow_audience", "build_in_public", "authority", "l
 export const contentGoalSchema = z.enum(contentGoals);
 
 export const postingWindowSchema = z.object({
-  day: z.number().int().min(0).max(6),
+  dayOffset: z.number().int().min(0).max(6),
   hour: z.number().int().min(0).max(23),
 });
 

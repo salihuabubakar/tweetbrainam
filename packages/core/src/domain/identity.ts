@@ -1,14 +1,4 @@
-export const onboardingSteps = [
-  "consent",
-  "analyzing",
-  "voice",
-  "goals",
-  "plan",
-  "first_draft",
-  "done",
-] as const;
-
-export type OnboardingStep = (typeof onboardingSteps)[number];
+import type { OnboardingStep, UserPreferences } from "./onboarding";
 
 export type User = {
   id: string;
@@ -16,6 +6,7 @@ export type User = {
   name: string;
   timezone: string;
   onboardingStep: OnboardingStep;
+  preferences: UserPreferences | null;
 };
 
 export type XProfile = {
@@ -23,6 +14,23 @@ export type XProfile = {
   handle: string;
   displayName: string;
   avatarUrl: string | null;
+};
+
+export const connectionStatuses = [
+  "connected",
+  "token_expired",
+  "revoked",
+  "rate_limited",
+] as const;
+
+export type ConnectionStatus = (typeof connectionStatuses)[number];
+
+export type XAccountSummary = {
+  handle: string;
+  displayName: string;
+  avatarUrl: string | null;
+  connectionStatus: ConnectionStatus;
+  connectedAt: Date;
 };
 
 export type EncryptedTokenSet = {

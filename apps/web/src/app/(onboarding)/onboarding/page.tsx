@@ -1,15 +1,58 @@
-export const metadata = { title: "Welcome" };
+import { AnalyzingStep } from "@/components/onboarding/analyzing-step";
+import { ConsentStep } from "@/components/onboarding/consent-step";
+import { FirstDraftStep } from "@/components/onboarding/first-draft-step";
+import { GoalsStep } from "@/components/onboarding/goals-step";
+import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
+import { PendingStep } from "@/components/onboarding/pending-step";
+import { PlanStep } from "@/components/onboarding/plan-step";
+import { VoiceStep } from "@/components/onboarding/voice-step";
+import { requireUser } from "@/lib/session";
+import type { OnboardingStepValue } from "@tweetbrainam/contracts";
+import { redirect } from "next/navigation";
 
-export default function OnboardingPage() {
+export const metadata = { title: "Get started" };
+
+const copy: Record<OnboardingStepValue, { title: string; description: string }> = {
+  consent: {
+    title: "Before we read anything",
+    description: "TweetBrainam learns your voice from your own posts. Here is exactly how.",
+  },
+  analyzing: {
+    title: "Reading your posts",
+    description: "We're learning how you write — tone, structure, topics, and rhythm.",
+  },
+  voice: {
+    title: "Your Voice DNA",
+    description: "Here's what we learned. Correct anything that doesn't sound like you.",
+  },
+  goals: {
+    title: "What are you working toward?",
+    description: "Your history tells us how you write. This tells us what to write about.",
+  },
+  plan: {
+    title: "Your first week",
+    description: "A plan shaped by your voice, your goals, and your cadence.",
+  },
+  first_draft: {
+    title: "Your first draft",
+    description: "Approve it, edit it, or ask for another. Nothing posts without you.",
+  },
+  done: { title: "You're set", description: "" },
+};
+
+export default async function OnboardingPage() {
+  const user = await requireUser();
+  const step = user.onboardingStep;
+  if (step === "done") redirect("/today");
+
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center px-6">
-      <div className="flex max-w-md flex-col items-center gap-4 text-center">
-        <h1 className="font-semibold text-2xl tracking-tight">You're in</h1>
-        <p className="text-muted-foreground text-sm">
-          Your X account is connected. The onboarding flow — consent, analysis, and your Voice DNA —
-          lands here next.
-        </p>
-      </div>
-    </main>
+    <OnboardingShell current={step} title={copy[step].title} description={copy[step].description}>
+      {step === "consent" ? <ConsentStep /> : null}
+      {step === "analyzing" ? <AnalyzingStep /> : null}
+      {step === "goals" ? <GoalsStep /> : null}
+      {step === "voice" ? <VoiceStep /> : null}
+      {step === "plan" ? <PlanStep /> : null}
+      {step === "first_draft" ? <FirstDraftStep /> : null}
+    </OnboardingShell>
   );
 }

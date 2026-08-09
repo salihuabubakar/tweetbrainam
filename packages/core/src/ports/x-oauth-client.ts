@@ -11,4 +11,5 @@ export type XOAuthClient = {
   exchangeCode(code: string, codeVerifier: string): Promise<XTokenSet>;
   refreshTokens(refreshToken: string): Promise<XTokenSet>;
   fetchProfile(accessToken: string): Promise<XProfile>;
+  revokeToken(token: string): Promise<void>;
 };

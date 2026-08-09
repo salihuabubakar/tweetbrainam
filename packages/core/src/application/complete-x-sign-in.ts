@@ -1,5 +1,5 @@
 import { type DomainError, domainError } from "../domain/errors";
-import type { OnboardingStep } from "../domain/identity";
+import type { OnboardingStep } from "../domain/onboarding";
 import { type Result, err, ok } from "../lib/result";
 import type { Clock } from "../ports/clock";
 import type { IdentityRepository } from "../ports/identity-repository";

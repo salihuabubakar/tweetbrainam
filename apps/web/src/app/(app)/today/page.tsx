@@ -1,15 +1,17 @@
+import { TodayQueue } from "@/components/today/today-queue";
+
 export const metadata = { title: "Today" };
 
 export default function TodayPage() {
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="font-semibold text-2xl tracking-tight">Today</h1>
-      <div className="flex flex-col items-center gap-2 rounded-lg border border-border border-dashed py-16 text-center">
-        <p className="font-medium text-sm">Nothing needs you right now</p>
+    <div className="flex max-w-2xl flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="font-semibold text-2xl tracking-tight">Today</h1>
         <p className="text-muted-foreground text-sm">
-          Connect your X account to start building your content brain.
+          What's going out, what went out, and anything that needs you.
         </p>
       </div>
+      <TodayQueue />
     </div>
   );
 }

@@ -22,6 +22,20 @@ export const connectionStatusEnum = pgEnum("connection_status", [
   "rate_limited",
 ]);
 
+export const analysisStateEnum = pgEnum("analysis_state", [
+  "idle",
+  "running",
+  "complete",
+  "failed",
+]);
+
+export const analysisFailureReasonEnum = pgEnum("analysis_failure_reason", [
+  "access_denied",
+  "rate_limited",
+  "connection_revoked",
+  "unknown",
+]);
+
 export const xAccounts = pgTable(
   "x_accounts",
   {
@@ -40,6 +54,9 @@ export const xAccounts = pgTable(
     connectionStatus: connectionStatusEnum("connection_status").notNull().default("connected"),
     lastIngestedPostId: text("last_ingested_post_id"),
     isPrimary: boolean("is_primary").notNull().default(false),
+    analysisState: analysisStateEnum("analysis_state").notNull().default("idle"),
+    analysisFailureReason: analysisFailureReasonEnum("analysis_failure_reason"),
+    analysisUpdatedAt: timestamp("analysis_updated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

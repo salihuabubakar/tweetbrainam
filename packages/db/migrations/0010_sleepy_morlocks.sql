@@ -1,0 +1,1 @@
+CREATE INDEX "ingested_posts_embedding_idx" ON "ingested_posts" USING hnsw ("embedding" vector_cosine_ops);

@@ -60,7 +60,7 @@ Notes:
 
 | Variable group | Examples | Dev | Prod |
 |---|---|---|---|
-| Core | `DATABASE_URL`, `REDIS_URL`, `APP_URL`, `API_URL` | compose defaults | host secrets |
+| Core | `DATABASE_URL`, `REDIS_URL`, `APP_URL`, `API_ORIGIN` | compose defaults | host secrets |
 | X | `X_CLIENT_ID`, `X_CLIENT_SECRET`, `X_REDIRECT_URI` | dev app creds | prod app creds |
 | AI | `GROK_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `AI_FAILOVER_ORDER` | personal keys | org keys |
 | Crypto | `TOKEN_ENCRYPTION_KEY` (32B base64), `SESSION_SECRET` | generated | KMS/secret manager |

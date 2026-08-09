@@ -30,7 +30,7 @@ module.exports = {
       from: { pathNot: "^packages/(ai|payment)" },
       to: {
         dependencyTypes: ["npm"],
-        path: "^(openai|@anthropic-ai|stripe|paystack)",
+        path: "^(openai|@anthropic-ai|groq-sdk|stripe|paystack)",
       },
     },
     {
@@ -42,6 +42,9 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: "node_modules" },
+    exclude: {
+      path: "(^|/)(node_modules|\\.next|\\.turbo|dist|build|coverage)(/|$)|\\.d\\.ts$",
+    },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.json" },
   },

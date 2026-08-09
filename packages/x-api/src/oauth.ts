@@ -5,6 +5,7 @@ import { XApiError } from "./errors";
 const AUTHORIZE_URL = "https://x.com/i/oauth2/authorize";
 const TOKEN_URL = "https://api.x.com/2/oauth2/token";
 const ME_URL = "https://api.x.com/2/users/me";
+const REVOKE_URL = "https://api.x.com/2/oauth2/revoke";
 
 const tokenResponseSchema = z.object({
   access_token: z.string(),
@@ -100,6 +101,24 @@ export function createXOAuthClient(config: XOAuthConfig): XOAuthClient {
         displayName: parsed.data.name,
         avatarUrl: parsed.data.profile_image_url ?? null,
       };
+    },
+
+    async revokeToken(token) {
+      const response = await fetch(REVOKE_URL, {
+        method: "POST",
+        headers: {
+          authorization: `Basic ${basicAuth}`,
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          token,
+          token_type_hint: "access_token",
+          client_id: config.clientId,
+        }),
+      });
+      if (!response.ok) {
+        throw new XApiError(response.status, REVOKE_URL, await response.text());
+      }
     },
   };
 }

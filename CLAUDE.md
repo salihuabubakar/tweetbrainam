@@ -29,6 +29,7 @@ AI Content Brain for X creators: learns a user's voice from their posts (OAuth-c
 5. All external input — HTTP bodies, X API responses, **LLM output**, jsonb, env — is parsed through a `contracts` zod schema exactly once at the boundary.
 6. `strict` TypeScript, no `any`, no unjustified `as`. Files ≤400 lines, functions ≤50, one primary export per file, kebab-case filenames.
 7. Frontend: Server Components by default, `'use client'` at leaves; no `useEffect` fetching; state per R41 (server → RSC/TanStack Query, filters → URL, ephemeral → useState); Tailwind with design tokens only — no raw hex/px; WCAG 2.1 AA semantics.
+7a. **Never lose the user's work (R41a).** Any input the user types, pastes, or selects that isn't yet saved to the server must use `useDurableState` so it survives refresh and tab close. Clear the key only once committed. Multi-step flows persist their position server-side so they always resume where the user left off.
 8. Never log or serialize tokens/secrets; authorization happens in use-cases, not routes.
 9. Every use-case you write ships with unit tests (stub ports, inject `Clock`); every bug fix ships with the regression test.
 10. Migrations: generate with drizzle-kit, expand → migrate → contract, never edit a merged migration.

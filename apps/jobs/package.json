@@ -1,0 +1,29 @@
+{
+  "name": "@tweetbrainam/jobs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "trigger dev",
+    "deploy": "trigger deploy",
+    "typecheck": "tsc",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@trigger.dev/sdk": "4.5.9",
+    "@tweetbrainam/ai": "workspace:*",
+    "@tweetbrainam/config": "workspace:*",
+    "@tweetbrainam/contracts": "workspace:*",
+    "@tweetbrainam/core": "workspace:*",
+    "@tweetbrainam/db": "workspace:*",
+    "@tweetbrainam/x-api": "workspace:*",
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "trigger.dev": "4.5.9",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}

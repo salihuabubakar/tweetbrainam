@@ -12,8 +12,8 @@
     "format": "biome format --write .",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
-    "boundaries": "depcruise apps packages --config .dependency-cruiser.cjs",
-    "check": "pnpm lint && pnpm typecheck && pnpm boundaries"
+    "boundaries": "depcruise apps/api/src apps/jobs/src apps/web/src packages/ai/src packages/contracts/src packages/core/src packages/db/src packages/ui/src packages/x-api/src --config .dependency-cruiser.cjs",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm boundaries"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

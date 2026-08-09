@@ -21,6 +21,7 @@ export const users = pgTable("users", {
   timezone: text("timezone").notNull().default("UTC"),
   onboardingStep: onboardingStepEnum("onboarding_step").notNull().default("consent"),
   preferences: jsonb("preferences").$type<UserPreferences>(),
+  consentedAt: timestamp("consented_at", { withTimezone: true }),
   status: userStatusEnum("status").notNull().default("active"),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

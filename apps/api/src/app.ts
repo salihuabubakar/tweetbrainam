@@ -10,8 +10,15 @@ import { logger } from "./lib/logger";
 import { requestLogger } from "./middleware/request-logger";
 import { createSessionMiddleware } from "./middleware/session";
 import { createAuthRoutes } from "./routes/auth";
+import { createDraftRoutes } from "./routes/drafts";
 import { health } from "./routes/health";
 import { createMeRoutes } from "./routes/me";
+import { createMemoryRoutes } from "./routes/memory";
+import { createOnboardingRoutes } from "./routes/onboarding";
+import { createPlanRoutes } from "./routes/plans";
+import { createScheduleRoutes } from "./routes/schedule";
+import { createSettingsRoutes } from "./routes/settings";
+import { createVoiceRoutes } from "./routes/voice";
 import type { AppEnv } from "./types";
 
 const errorEnvelope = (code: ErrorEnvelope["error"]["code"], message: string, id: string) => ({
@@ -35,6 +42,13 @@ export function createApp(deps: AppDeps) {
   app.route("/", health);
   app.route("/", createAuthRoutes(deps));
   app.route("/", createMeRoutes(deps));
+  app.route("/", createOnboardingRoutes(deps));
+  app.route("/", createVoiceRoutes(deps));
+  app.route("/", createMemoryRoutes(deps));
+  app.route("/", createPlanRoutes(deps));
+  app.route("/", createDraftRoutes(deps));
+  app.route("/", createScheduleRoutes(deps));
+  app.route("/", createSettingsRoutes(deps));
 
   app.notFound((c) =>
     c.json(errorEnvelope("not_found", "Route not found.", c.get("requestId")), 404),

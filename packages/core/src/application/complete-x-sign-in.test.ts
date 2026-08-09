@@ -16,6 +16,7 @@ const existingUser: User = {
   name: "Salihu",
   timezone: "UTC",
   onboardingStep: "done",
+  preferences: null,
 };
 
 function makeDeps(overrides: { existing: User | null }) {
@@ -35,6 +36,13 @@ function makeDeps(overrides: { existing: User | null }) {
     updateXAccountTokens: async () => {
       calls.tokensUpdated += 1;
     },
+    recordConsent: async () => {},
+    updateOnboardingStep: async () => {},
+    saveUserGoals: async () => {},
+    listActiveOnboardedUserIds: async () => [],
+    findXAccountSummary: async () => null,
+    savePreferences: async () => {},
+    deleteUser: async () => {},
   };
 
   const deps: CompleteXSignInDeps = {
@@ -53,6 +61,7 @@ function makeDeps(overrides: { existing: User | null }) {
         throw new Error("not used");
       },
       fetchProfile: async () => profile,
+      revokeToken: async () => {},
     },
     cipher: {
       encrypt: (plain) => new TextEncoder().encode(plain),

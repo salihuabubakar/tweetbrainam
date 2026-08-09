@@ -1,5 +1,5 @@
 import type { EncryptedTokenSet, IdentityRepository, User } from "@tweetbrainam/core";
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { Database } from "../client";
 import { type UserRow, users, xAccounts } from "../schema";
 
@@ -9,6 +9,7 @@ const toDomainUser = (row: UserRow): User => ({
   name: row.name,
   timezone: row.timezone,
   onboardingStep: row.onboardingStep,
+  preferences: row.preferences ?? null,
 });
 
 const toBuffers = (tokens: EncryptedTokenSet) => ({
@@ -65,6 +66,56 @@ export function createIdentityRepository(db: Database): IdentityRepository {
         .update(xAccounts)
         .set({ ...toBuffers(tokens), connectionStatus: "connected" })
         .where(eq(xAccounts.xUserId, xUserId));
+    },
+
+    async listActiveOnboardedUserIds() {
+      const rows = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.status, "active"), eq(users.onboardingStep, "done")));
+      return rows.map((row) => row.id);
+    },
+
+    async recordConsent(userId, at) {
+      await db.update(users).set({ consentedAt: at }).where(eq(users.id, userId));
+    },
+
+    async updateOnboardingStep(userId, step) {
+      await db.update(users).set({ onboardingStep: step }).where(eq(users.id, userId));
+    },
+
+    async saveUserGoals(userId, goals) {
+      await db
+        .update(users)
+        .set({
+          timezone: goals.timezone,
+          preferences: { goal: goals.goal, postsPerWeek: goals.postsPerWeek, postingWindows: [] },
+        })
+        .where(eq(users.id, userId));
+    },
+
+    async findXAccountSummary(userId) {
+      const rows = await db
+        .select({
+          handle: xAccounts.handle,
+          displayName: xAccounts.displayName,
+          avatarUrl: xAccounts.avatarUrl,
+          connectionStatus: xAccounts.connectionStatus,
+          connectedAt: xAccounts.createdAt,
+        })
+        .from(xAccounts)
+        .where(eq(xAccounts.userId, userId))
+        .orderBy(desc(xAccounts.isPrimary))
+        .limit(1);
+      return rows[0] ?? null;
+    },
+
+    async savePreferences(userId, { timezone, preferences }) {
+      await db.update(users).set({ timezone, preferences }).where(eq(users.id, userId));
+    },
+
+    async deleteUser(userId) {
+      await db.delete(users).where(eq(users.id, userId));
     },
   };
 }

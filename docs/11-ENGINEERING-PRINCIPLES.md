@@ -88,8 +88,14 @@ Quick topic map: naming §9 (R35) · folder rules §9 (R36, R38) · file size §
   |---|---|
   | Server data (drafts, plans, voice) | RSC props; TanStack Query for client-side mutation/polling (job status) |
   | Filters, tabs, pagination | The URL (searchParams) — shareable and back-button-safe |
-  | Ephemeral UI (open dialog, editor text) | `useState`/`useReducer` in the component |
+  | Ephemeral UI (open dialog, hover, focus) | `useState`/`useReducer` in the component |
+  | Unsaved user input (draft text, pasted content, form selections) | `useDurableState` — survives refresh and tab close (R41a) |
   | Cross-cutting client state | Zustand, only after two features demonstrably need it; never React Context for frequently-changing values; no Redux |
+- **R41a — Never lose the user's work.** Durability is a product requirement, not a nicety. Two layers, both mandatory:
+  1. *Committed state* lives in Postgres and must be resumable — every multi-step flow persists its position (e.g. `users.onboarding_step`), so closing the tab and returning lands the user exactly where they were.
+  2. *Uncommitted input* — anything typed, selected, or pasted but not yet submitted — persists via `useDurableState` (namespaced `tb:` localStorage, debounced writes, restored on mount). Clear the key only when the value is committed to the server, or on sign-out via `clearAllDurableState()`.
+
+  Any textarea, multi-select, or multi-step form added from here on uses `useDurableState`. A PR that introduces a `useState` holding user-authored text that would survive nothing is incomplete. Tell the user their work is kept ("Saved as you type") — silent durability doesn't buy trust.
 - **R42 — Styling is tokens + Tailwind.** All colors/spacing/type ramp come from CSS-variable design tokens in `packages/ui/tokens` — raw hex/px literals in app code are lint errors. Variants via `cva`; conditional classes via `cn()`; class order enforced by the Tailwind Prettier plugin. No CSS-in-JS, no styled-components, no inline style objects except dynamic values. Dark mode ships via tokens, never per-component overrides.
 - **R43 — Accessibility is a merge requirement, not a pass.** WCAG 2.1 AA. Semantic HTML first — interactive means `<button>`/`<a>`, never `div onClick`. Every core flow (review → approve → publish) fully keyboard-operable; visible focus states; focus trapped and restored around dialogs/⌘K; every input labeled; AA contrast verified at the token level; `prefers-reduced-motion` respected by all motion. Playwright runs axe checks on core views in CI; new violations fail the build.
 

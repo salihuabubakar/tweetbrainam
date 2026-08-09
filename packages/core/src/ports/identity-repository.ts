@@ -1,4 +1,5 @@
-import type { EncryptedTokenSet, User, XProfile } from "../domain/identity";
+import type { EncryptedTokenSet, User, XAccountSummary, XProfile } from "../domain/identity";
+import type { OnboardingStep, UserGoals, UserPreferences } from "../domain/onboarding";
 
 export type IdentityRepository = {
   findUserByXUserId(xUserId: string): Promise<User | null>;
@@ -9,4 +10,14 @@ export type IdentityRepository = {
     scopes: string[];
   }): Promise<User>;
   updateXAccountTokens(xUserId: string, tokens: EncryptedTokenSet): Promise<void>;
+  recordConsent(userId: string, at: Date): Promise<void>;
+  updateOnboardingStep(userId: string, step: OnboardingStep): Promise<void>;
+  saveUserGoals(userId: string, goals: UserGoals): Promise<void>;
+  listActiveOnboardedUserIds(): Promise<string[]>;
+  findXAccountSummary(userId: string): Promise<XAccountSummary | null>;
+  savePreferences(
+    userId: string,
+    input: { timezone: string; preferences: UserPreferences },
+  ): Promise<void>;
+  deleteUser(userId: string): Promise<void>;
 };

@@ -15,8 +15,10 @@ export const env = parseEnv({
   REDIS_URL: z.string().url().default("redis://localhost:6379"),
   X_CLIENT_ID: z.string().default(DEV_PLACEHOLDER),
   X_CLIENT_SECRET: z.string().default(DEV_PLACEHOLDER),
-  X_REDIRECT_URI: z.string().url().default("http://localhost:3001/v1/auth/x/callback"),
+  X_REDIRECT_URI: z.string().url().default("http://localhost:3000/api/v1/auth/x/callback"),
   TOKEN_ENCRYPTION_KEY: z.string().default(DEV_KEY),
+  TRIGGER_SECRET_KEY: z.string().optional(),
+  INGESTION_MAX_POSTS: z.coerce.number().int().min(1).max(3200).default(100),
 });
 
 if (env.NODE_ENV === "production") {

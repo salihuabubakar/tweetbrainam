@@ -1,4 +1,6 @@
 import { NavLink } from "@/components/shared/nav-link";
+import { SignOutButton } from "@/components/shared/sign-out-button";
+import { requireOnboardedUser } from "@/lib/session";
 import type { ReactNode } from "react";
 
 const navItems = [
@@ -9,7 +11,9 @@ const navItems = [
   { href: "/settings", label: "Settings" },
 ];
 
-export default function AppLayout({ children }: { children: ReactNode }) {
+export default async function AppLayout({ children }: { children: ReactNode }) {
+  const user = await requireOnboardedUser();
+
   return (
     <div className="flex min-h-svh">
       <aside className="flex w-56 flex-col gap-6 border-border border-r px-3 py-5">
@@ -21,6 +25,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </NavLink>
           ))}
         </nav>
+        <div className="mt-auto flex flex-col gap-2 border-border border-t pt-4">
+          <span className="truncate px-3 text-muted-foreground text-xs">{user.name}</span>
+          <SignOutButton />
+        </div>
       </aside>
       <main className="flex-1 px-8 py-6">{children}</main>
     </div>

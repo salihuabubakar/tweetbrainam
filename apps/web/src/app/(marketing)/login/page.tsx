@@ -1,9 +1,14 @@
 import { apiUrl } from "@/lib/api-url";
+import { getCurrentUser } from "@/lib/session";
 import { buttonVariants } from "@tweetbrainam/ui";
+import { redirect } from "next/navigation";
 
 export const metadata = { title: "Sign in" };
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const user = await getCurrentUser();
+  if (user) redirect(user.onboardingStep === "done" ? "/today" : "/onboarding");
+
   return (
     <main className="flex min-h-svh flex-col items-center justify-center px-6">
       <div className="flex w-full max-w-sm flex-col items-center gap-6 rounded-lg border border-border bg-card p-8 text-center">
