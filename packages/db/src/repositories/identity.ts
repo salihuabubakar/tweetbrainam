@@ -68,12 +68,11 @@ export function createIdentityRepository(db: Database): IdentityRepository {
         .where(eq(xAccounts.xUserId, xUserId));
     },
 
-    async listActiveOnboardedUserIds() {
-      const rows = await db
-        .select({ id: users.id })
+    async listActiveOnboardedUsers() {
+      return db
+        .select({ id: users.id, timezone: users.timezone })
         .from(users)
         .where(and(eq(users.status, "active"), eq(users.onboardingStep, "done")));
-      return rows.map((row) => row.id);
     },
 
     async recordConsent(userId, at) {

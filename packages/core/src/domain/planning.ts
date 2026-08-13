@@ -40,6 +40,22 @@ export type PostingWindow = {
   hour: number;
 };
 
+export const MAX_SLOTS_PER_PLAN = 21;
+
+const COMMITTED_SLOT_STATUSES: readonly SlotStatus[] = ["approved", "published"];
+
+export function canEditSlot(status: SlotStatus): boolean {
+  return !COMMITTED_SLOT_STATUSES.includes(status);
+}
+
+export function canRemoveSlot(status: SlotStatus): boolean {
+  return !COMMITTED_SLOT_STATUSES.includes(status);
+}
+
+export function canSkipSlot(status: SlotStatus): boolean {
+  return status === "empty" || status === "drafting" || status === "ready";
+}
+
 export const MORNING_HOUR = 9;
 export const MIDDAY_HOUR = 13;
 export const EVENING_HOUR = 18;
@@ -167,6 +183,51 @@ export function localWallClockToUtc(
   );
   const offset = timeZoneOffsetMs(new Date(naive), timeZone);
   return new Date(naive - offset);
+}
+
+export const PLANNING_HOUR = 17;
+
+const PLANNING_WEEKDAY = "Sun";
+
+type ZonedParts = { date: string; hour: number; weekday: string };
+
+function zonedParts(instant: Date, timeZone: string): ZonedParts {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    weekday: "short",
+  });
+
+  const parts = formatter.formatToParts(instant);
+  const read = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+
+  return {
+    date: `${read("year")}-${read("month")}-${read("day")}`,
+    hour: Number(read("hour")) % 24,
+    weekday: read("weekday"),
+  };
+}
+
+function safeZonedParts(instant: Date, timeZone: string): ZonedParts {
+  try {
+    return zonedParts(instant, timeZone);
+  } catch {
+    return zonedParts(instant, "UTC");
+  }
+}
+
+export function isPlanningHourInZone(instant: Date, timeZone: string): boolean {
+  const parts = safeZonedParts(instant, timeZone);
+  return parts.weekday === PLANNING_WEEKDAY && parts.hour === PLANNING_HOUR;
+}
+
+export function nextMondayInZone(instant: Date, timeZone: string): string {
+  const parts = safeZonedParts(instant, timeZone);
+  return nextMondayOf(new Date(`${parts.date}T00:00:00Z`));
 }
 
 export function mondayOf(date: Date): string {

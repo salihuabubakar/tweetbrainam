@@ -26,8 +26,12 @@ describe("auth flow", () => {
 
     const me = await app.request("/v1/me", { headers: { cookie: "tb_session=session-1" } });
     expect(me.status).toBe(200);
-    const body = (await me.json()) as { user: { id: string } };
+    const body = (await me.json()) as {
+      user: { id: string };
+      trial: { planCode: string; isExpired: boolean };
+    };
     expect(body.user.id).toBe("user-1");
+    expect(body.trial).toEqual({ planCode: "free_beta", isExpired: false, daysRemaining: 0 });
   });
 
   it("redirects to login with an error for a forged state", async () => {

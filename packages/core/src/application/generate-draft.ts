@@ -48,9 +48,16 @@ export type GenerateDraftDeps = QuotaDeps & {
   buildRequest(context: DraftPromptContext): DraftRequest;
 };
 
+export type DraftBrief = {
+  topic: string;
+  angle: string;
+  format: PostFormat;
+};
+
 export type GenerateDraftInput = {
   userId: string;
-  planSlotId: string;
+  planSlotId?: string | undefined;
+  brief?: DraftBrief | undefined;
   guidance?: string | undefined;
 };
 
@@ -71,31 +78,41 @@ export async function generateDraft(
   const quota = await checkUserQuota(deps, { userId: input.userId, metric: "draft_generated" });
   if (!quota.ok) return quota;
 
-  const slot = await deps.plans.findSlotById(input.planSlotId);
-  if (!slot) return err(domainError("not_found", "That planned post no longer exists."));
+  const slot = input.planSlotId ? await deps.plans.findSlotById(input.planSlotId) : null;
+  if (input.planSlotId && !slot) {
+    return err(domainError("not_found", "That planned post no longer exists."));
+  }
+
+  const brief: DraftBrief | null = slot
+    ? { topic: slot.topic, angle: slot.angle, format: slot.format }
+    : (input.brief ?? null);
+
+  if (!brief) {
+    return err(domainError("validation_failed", "Tell us what to write about."));
+  }
 
   const profile = await deps.voice.findActiveProfile(account.id);
   if (!profile) {
     return err(domainError("voice_profile_missing", "We need your voice profile before writing."));
   }
 
-  const existing = await deps.drafts.findBySlot(input.planSlotId);
-  const draft = existing ?? (await deps.drafts.createGenerating(account.id, input.planSlotId));
+  const existing = slot ? await deps.drafts.findBySlot(slot.id) : null;
+  const draft = existing ?? (await deps.drafts.createGenerating(account.id, slot?.id ?? null));
   await deps.drafts.setStatus(draft.id, "generating");
-  await deps.plans.updateSlotStatus(slot.id, "drafting");
+  if (slot) await deps.plans.updateSlotStatus(slot.id, "drafting");
 
   const examples = await retrieveDraftExamples(deps, {
     xAccountId: account.id,
-    topic: slot.topic,
-    angle: slot.angle,
+    topic: brief.topic,
+    angle: brief.angle,
   });
 
   const facts = await deps.memory.listForUser(input.userId, "active");
 
   const request = deps.buildRequest({
-    topic: slot.topic,
-    angle: slot.angle,
-    format: slot.format,
+    topic: brief.topic,
+    angle: brief.angle,
+    format: brief.format,
     tones: profile.traits.tones,
     formality: profile.traits.formality,
     averageSentenceLength: profile.traits.averageSentenceLength,
@@ -118,7 +135,7 @@ export async function generateDraft(
 
   if (!generated.ok) {
     await deps.drafts.setStatus(draft.id, "failed");
-    await deps.plans.updateSlotStatus(slot.id, "empty");
+    if (slot) await deps.plans.updateSlotStatus(slot.id, "empty");
     return err(domainError("generation_failed", generated.error.detail));
   }
 
@@ -127,7 +144,7 @@ export async function generateDraft(
   const segments = (generated.value.value as { segments: DraftSegment[] }).segments;
   const withVersion = await deps.drafts.addVersion(draft.id, segments, "ai");
   await deps.drafts.setStatus(draft.id, "needs_review");
-  await deps.plans.updateSlotStatus(slot.id, "ready");
+  if (slot) await deps.plans.updateSlotStatus(slot.id, "ready");
 
   if (input.guidance) {
     await deps.drafts.recordLearningSignal({

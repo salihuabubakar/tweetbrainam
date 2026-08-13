@@ -1,10 +1,12 @@
 import { type DomainError, domainError } from "../domain/errors";
 import type { OnboardingStep } from "../domain/onboarding";
+import { trialEndsAtFrom } from "../domain/usage";
 import { type Result, err, ok } from "../lib/result";
 import type { Clock } from "../ports/clock";
 import type { IdentityRepository } from "../ports/identity-repository";
 import type { TokenCipher } from "../ports/security";
 import type { OAuthStateStore, SessionStore } from "../ports/sessions";
+import type { UsageRepository } from "../ports/usage-repository";
 import type { XOAuthClient, XTokenSet } from "../ports/x-oauth-client";
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
@@ -17,6 +19,7 @@ export type CompleteXSignInDeps = {
   cipher: TokenCipher;
   identity: IdentityRepository;
   sessions: SessionStore;
+  usage: UsageRepository;
   clock: Clock;
 };
 
@@ -65,6 +68,8 @@ export async function completeXSignIn(
 
   if (existingUser) {
     await deps.identity.updateXAccountTokens(profile.xUserId, encryptedTokens);
+  } else {
+    await deps.usage.startTrial(user.id, trialEndsAtFrom(deps.clock.now()));
   }
 
   const sessionId = await deps.sessions.create(user.id, SESSION_TTL_SECONDS);

@@ -3,6 +3,7 @@ export { createIdentityRepository } from "./repositories/identity";
 export { createIngestionRepository } from "./repositories/ingestion";
 export { createDraftRepository } from "./repositories/draft";
 export { createMemoryRepository } from "./repositories/memory";
+export { createNotificationRepository } from "./repositories/notification";
 export { createPlanRepository } from "./repositories/plan";
 export { createScheduleRepository } from "./repositories/schedule";
 export { createUsageRepository } from "./repositories/usage";

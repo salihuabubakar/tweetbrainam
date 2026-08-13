@@ -146,14 +146,24 @@ Conventions: UUIDv7 PKs (app-generated), `snake_case`, `timestamptz` everywhere,
 | evidence | jsonb | |
 | status | enum(`active,dismissed`) | |
 
-## notifications / notification_preferences
-`notifications`: id, user_id FK, type, channel enum(`email,in_app`), payload jsonb, dedupe_key unique nullable, status enum(`pending,sent,failed`), sent_at.
-`notification_preferences`: user_id PK/FK, per-type booleans jsonb, reminder_lead_minutes int default 60, quiet_hours jsonb, digest_day/time.
+## push_subscriptions
+| column | type | notes |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid FK | idx; cascades on account deletion |
+| endpoint | text | **unique** — one row per device, not per user |
+| p256dh | text | client public key from the browser subscription |
+| auth | text | client auth secret from the browser subscription |
+| created_at | timestamptz | |
+
+Delivery is Web Push only (D31). A row is removed when the push service reports the endpoint gone (404/410); a transient send failure leaves it alone. Notification content is not persisted — it is derived at send time from the plan or draft in question, so nothing user-facing is duplicated into a queue table.
+
+`notifications` / `notification_preferences` from the original design are **not built**. Per-type preferences and quiet hours are Phase 2; today the only control is on/off per device.
 
 ## plans / subscriptions / usage_records / payment_events (billing-ready, dormant in MVP, provider-agnostic)
 `plans`: id, code unique(`free_beta,pro,team`), name, limits jsonb, price_cents, currency (default 'NGN'-ready, per-plan), active.
-`subscriptions`: id, user_id FK unique, plan_id FK, status enum(`active,canceled,past_due`), payment_provider enum(`paystack,flutterwave,stripe,lemonsqueezy`) nullable, provider_customer_id text nullable, provider_subscription_id text nullable, provider_metadata jsonb nullable, current_period_start/end. Unique(payment_provider, provider_subscription_id) where not null. No provider-named columns — switching providers is a data migration, not a schema migration.
-`usage_records`: id, user_id FK, metric enum(`draft_generated,plan_generated,post_published`), quantity, period (date, month bucket), unique(user_id, metric, period) with counter update. Quota check = usage vs plan limits.
+`subscriptions`: id, user_id FK unique, plan_code enum(`trial,free_beta,pro,team`), status enum(`trialing,active,expired,canceled,past_due`), trial_ends_at timestamptz nullable, payment_provider enum(`paystack,flutterwave,stripe,lemonsqueezy`) nullable, provider_customer_id text nullable, provider_subscription_id text nullable, current_period_start/end. No provider-named columns — switching providers is a data migration, not a schema migration. Defaults are `free_beta`/`active`, not `trial`: the application sets trial explicitly at signup so an unexpected row is never silently a countdown (D30).
+`usage_records`: id, user_id FK, metric enum(`draft_generated,plan_generated,post_published`), quantity, period text, unique(user_id, metric, period) with counter update. Period is a month bucket (`"2026-08"`) for paid plans and the literal `"trial"` for trials, so trial allowances run for the life of the trial rather than resetting at a month boundary (D30).
 `payment_events`: id, payment_provider enum, provider_event_id text, unique(payment_provider, provider_event_id) — webhook idempotency ledger; type enum(`subscription_activated,payment_succeeded,payment_failed,subscription_canceled`), subscription_id FK nullable, payload jsonb (raw, for audit), processed_at.
 
 ## ai_generations

@@ -5,13 +5,25 @@ import { subscriptions, usageRecords } from "../schema";
 
 export function createUsageRepository(db: Database): UsageRepository {
   return {
-    async findPlanCode(userId) {
+    async findSubscription(userId) {
       const rows = await db
-        .select({ planCode: subscriptions.planCode })
+        .select({
+          planCode: subscriptions.planCode,
+          status: subscriptions.status,
+          trialEndsAt: subscriptions.trialEndsAt,
+        })
         .from(subscriptions)
         .where(eq(subscriptions.userId, userId))
         .limit(1);
-      return rows[0]?.planCode ?? "free_beta";
+
+      return rows[0] ?? null;
+    },
+
+    async startTrial(userId, trialEndsAt) {
+      await db
+        .insert(subscriptions)
+        .values({ userId, planCode: "trial", status: "trialing", trialEndsAt })
+        .onConflictDoNothing({ target: subscriptions.userId });
     },
 
     async countUsage(userId, metric, period) {

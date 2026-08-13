@@ -6,6 +6,7 @@ export {
   type ErrorEnvelope,
 } from "./errors";
 export {
+  createDraftInputSchema,
   draftContentSchema,
   draftListItemSchema,
   draftSchema,
@@ -15,6 +16,7 @@ export {
   editDraftInputSchema,
   regenerateDraftInputSchema,
   rejectDraftInputSchema,
+  type CreateDraftInput,
   type DraftContentValue,
   type DraftListItemValue,
   type DraftSegmentValue,
@@ -22,16 +24,22 @@ export {
   type DraftValue,
 } from "./drafting";
 export {
+  addPlanSlotInputSchema,
   contentPlanSchema,
   planSlotSchema,
   plannedSlotSchema,
   postFormatSchema,
+  slotAngleSchema,
   slotStatusSchema,
+  slotTopicSchema,
+  updatePlanSlotInputSchema,
   weeklyPlanAnalysisSchema,
+  type AddPlanSlotInput,
   type ContentPlanValue,
   type PlanSlotValue,
   type PostFormatValue,
   type SlotStatusValue,
+  type UpdatePlanSlotInput,
   type WeeklyPlanAnalysis,
 } from "./planning";
 export {
@@ -47,15 +55,28 @@ export {
   type VoiceTraitsValue,
 } from "./voice";
 export {
+  canRevisitStep,
   importPostsInputSchema,
   onboardingStateSchema,
+  onboardingStepOrder,
   onboardingStepSchema,
+  revisitableStepValues,
   saveGoalsInputSchema,
   type ImportPostsInput,
   type OnboardingState,
   type OnboardingStepValue,
   type SaveGoalsInput,
 } from "./onboarding";
+export {
+  notificationKindSchema,
+  notificationPayloadSchema,
+  pushSubscriptionInputSchema,
+  unsubscribeInputSchema,
+  type NotificationKindValue,
+  type NotificationPayload,
+  type PushSubscriptionInput,
+  type UnsubscribeInput,
+} from "./notifications";
 export {
   addMemoryFactInputSchema,
   memoryCategorySchema,
@@ -76,6 +97,7 @@ export {
   deleteAccountInputSchema,
   planCodeSchema,
   settingsSummarySchema,
+  subscriptionStatusSchema,
   updatePreferencesInputSchema,
   usageLineSchema,
   usageMetricSchema,

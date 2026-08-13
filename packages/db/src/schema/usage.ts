@@ -2,7 +2,7 @@ import { integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle
 import { v7 as uuidv7 } from "uuid";
 import { users } from "./users";
 
-export const planCodeEnum = pgEnum("plan_code", ["free_beta", "pro", "team"]);
+export const planCodeEnum = pgEnum("plan_code", ["trial", "free_beta", "pro", "team"]);
 
 export const usageMetricEnum = pgEnum("usage_metric", [
   "draft_generated",
@@ -11,7 +11,9 @@ export const usageMetricEnum = pgEnum("usage_metric", [
 ]);
 
 export const subscriptionStatusEnum = pgEnum("subscription_status", [
+  "trialing",
   "active",
+  "expired",
   "canceled",
   "past_due",
 ]);
@@ -32,6 +34,7 @@ export const subscriptions = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     planCode: planCodeEnum("plan_code").notNull().default("free_beta"),
     status: subscriptionStatusEnum("status").notNull().default("active"),
+    trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
     paymentProvider: paymentProviderEnum("payment_provider"),
     providerCustomerId: text("provider_customer_id"),
     providerSubscriptionId: text("provider_subscription_id"),

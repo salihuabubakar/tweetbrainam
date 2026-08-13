@@ -7,6 +7,7 @@ export const errorCodes = [
   "validation_failed",
   "rate_limited",
   "quota_exceeded",
+  "trial_expired",
   "conflict",
   "idempotency_replay",
   "onboarding_incomplete",

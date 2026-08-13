@@ -24,6 +24,7 @@ function makeDeps(overrides: { existing: User | null }) {
     tokensUpdated: 0,
     usersCreated: 0,
     sessionsCreated: [] as string[],
+    trialsStarted: [] as { userId: string; trialEndsAt: Date }[],
   };
 
   const identity: IdentityRepository = {
@@ -39,7 +40,7 @@ function makeDeps(overrides: { existing: User | null }) {
     recordConsent: async () => {},
     updateOnboardingStep: async () => {},
     saveUserGoals: async () => {},
-    listActiveOnboardedUserIds: async () => [],
+    listActiveOnboardedUsers: async () => [],
     findXAccountSummary: async () => null,
     savePreferences: async () => {},
     deleteUser: async () => {},
@@ -66,6 +67,19 @@ function makeDeps(overrides: { existing: User | null }) {
     cipher: {
       encrypt: (plain) => new TextEncoder().encode(plain),
       decrypt: (data) => new TextDecoder().decode(data),
+    },
+    usage: {
+      findSubscription: async () => null,
+      startTrial: async (userId, trialEndsAt) => {
+        calls.trialsStarted.push({ userId, trialEndsAt });
+      },
+      countUsage: async () => 0,
+      countUsageByMetric: async () => ({
+        draft_generated: 0,
+        plan_generated: 0,
+        post_published: 0,
+      }),
+      recordUsage: async () => {},
     },
     identity,
     sessions: {
@@ -102,6 +116,24 @@ describe("completeXSignIn", () => {
     expect(calls.usersCreated).toBe(1);
     expect(calls.tokensUpdated).toBe(0);
     expect(calls.sessionsCreated).toEqual(["user-new"]);
+  });
+
+  it("starts a seven-day trial for a new user", async () => {
+    const { deps, calls } = makeDeps({ existing: null });
+
+    await completeXSignIn(deps, { code: "code", state: "valid-state" });
+
+    expect(calls.trialsStarted).toHaveLength(1);
+    expect(calls.trialsStarted[0]?.userId).toBe("user-new");
+    expect(calls.trialsStarted[0]?.trialEndsAt.toISOString()).toBe("2026-08-13T12:00:00.000Z");
+  });
+
+  it("does not restart the trial when an existing user signs in again", async () => {
+    const { deps, calls } = makeDeps({ existing: existingUser });
+
+    await completeXSignIn(deps, { code: "code", state: "valid-state" });
+
+    expect(calls.trialsStarted).toEqual([]);
   });
 
   it("refreshes tokens and resumes for a returning user", async () => {

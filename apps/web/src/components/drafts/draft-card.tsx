@@ -1,5 +1,6 @@
 "use client";
 
+import { readApiError } from "@/lib/api-error";
 import { apiUrl } from "@/lib/api-url";
 import { useDurableState } from "@/lib/durable-state";
 import type { DraftListItemValue } from "@tweetbrainam/contracts";
@@ -48,11 +49,12 @@ export function DraftCard({
   const hasUnsaved = pending !== null && JSON.stringify(pending) !== JSON.stringify(original);
   const isTooLong = segments.some((text) => text.trim().length > MAX_SEGMENT_LENGTH);
 
-  async function call(path: string, init: RequestInit) {
+  async function call(path: string, init: RequestInit, fallback: string) {
     setState("working");
     setError(null);
     const response = await fetch(`${apiUrl}${path}`, { credentials: "include", ...init });
     if (!response.ok) {
+      setError(await readApiError(response, fallback));
       setState("reading");
       return false;
     }
@@ -60,13 +62,16 @@ export function DraftCard({
   }
 
   async function saveEdits() {
-    const ok = await call(`/v1/drafts/${draft.id}/content`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ segments: segments.map((text) => ({ text: text.trim() })) }),
-    });
+    const ok = await call(
+      `/v1/drafts/${draft.id}/content`,
+      {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ segments: segments.map((text) => ({ text: text.trim() })) }),
+      },
+      "We couldn't save that. Check each post is 280 characters or fewer.",
+    );
     if (!ok) {
-      setError("We couldn't save that. Check each post is 280 characters or fewer.");
       setState("editing");
       return;
     }
@@ -76,25 +81,27 @@ export function DraftCard({
   }
 
   async function approve() {
-    const ok = await call(`/v1/drafts/${draft.id}/approve`, { method: "POST" });
-    if (!ok) {
-      setError("We couldn't approve that draft.");
-      return;
-    }
+    const ok = await call(
+      `/v1/drafts/${draft.id}/approve`,
+      { method: "POST" },
+      "We couldn't approve that draft.",
+    );
+    if (!ok) return;
     clearPending();
     onChanged();
   }
 
   async function reject() {
-    const ok = await call(`/v1/drafts/${draft.id}/reject`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    if (!ok) {
-      setError("We couldn't set that aside.");
-      return;
-    }
+    const ok = await call(
+      `/v1/drafts/${draft.id}/reject`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      },
+      "We couldn't set that aside.",
+    );
+    if (!ok) return;
     clearPending();
     onChanged();
   }

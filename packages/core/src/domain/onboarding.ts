@@ -27,6 +27,27 @@ export const autoAdvanceableSteps: readonly OnboardingStep[] = [
   "first_draft",
 ];
 
+export const revisitableSteps: readonly OnboardingStep[] = [
+  "analyzing",
+  "voice",
+  "goals",
+  "plan",
+  "first_draft",
+];
+
+export function onboardingStepIndex(step: OnboardingStep): number {
+  return onboardingSteps.indexOf(step);
+}
+
+export function hasReached(current: OnboardingStep, target: OnboardingStep): boolean {
+  return onboardingStepIndex(current) >= onboardingStepIndex(target);
+}
+
+export function canRevisit(furthest: OnboardingStep, target: OnboardingStep): boolean {
+  if (!revisitableSteps.includes(target)) return false;
+  return hasReached(furthest, target);
+}
+
 export const contentGoals = ["grow_audience", "build_in_public", "authority", "leads"] as const;
 
 export type ContentGoal = (typeof contentGoals)[number];

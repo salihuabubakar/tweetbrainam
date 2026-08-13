@@ -36,15 +36,16 @@ export function createTriggerJobRunner(isEnabled: boolean): JobRunner {
       await tasks.trigger("generate-weekly-plan", { userId });
     },
 
-    async startDraftGeneration(userId, planSlotId, guidance) {
+    async startDraftGeneration(userId, input) {
       if (!isEnabled) {
-        logger.warn({ userId, planSlotId }, "draft skipped: TRIGGER_SECRET_KEY not configured");
+        logger.warn({ userId, ...input }, "draft skipped: TRIGGER_SECRET_KEY not configured");
         return;
       }
       await tasks.trigger("generate-draft", {
         userId,
-        planSlotId,
-        ...(guidance ? { guidance } : {}),
+        ...(input.planSlotId ? { planSlotId: input.planSlotId } : {}),
+        ...(input.brief ? { brief: input.brief } : {}),
+        ...(input.guidance ? { guidance: input.guidance } : {}),
       });
     },
 

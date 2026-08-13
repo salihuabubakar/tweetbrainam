@@ -1,22 +1,24 @@
-import type { ContentPlan, PlanRepository } from "@tweetbrainam/core";
-import { and, asc, eq } from "drizzle-orm";
+import type { ContentPlan, PlanRepository, PlanSlot } from "@tweetbrainam/core";
+import { and, asc, count, eq } from "drizzle-orm";
 import type { Database } from "../client";
 import { type ContentPlanRow, type PlanSlotRow, contentPlans, planSlots } from "../schema";
+
+const toDomainSlot = (slot: PlanSlotRow): PlanSlot => ({
+  id: slot.id,
+  topic: slot.topic,
+  format: slot.format,
+  angle: slot.angle,
+  targetAt: slot.targetAt,
+  status: slot.status,
+  position: slot.position,
+});
 
 const toDomainPlan = (plan: ContentPlanRow, slots: PlanSlotRow[]): ContentPlan => ({
   id: plan.id,
   weekStart: plan.weekStart,
   status: plan.status,
   rationale: plan.rationale,
-  slots: slots.map((slot) => ({
-    id: slot.id,
-    topic: slot.topic,
-    format: slot.format,
-    angle: slot.angle,
-    targetAt: slot.targetAt,
-    status: slot.status,
-    position: slot.position,
-  })),
+  slots: slots.map(toDomainSlot),
 });
 
 export function createPlanRepository(db: Database): PlanRepository {
@@ -40,19 +42,51 @@ export function createPlanRepository(db: Database): PlanRepository {
       return toDomainPlan(plan, slots);
     },
 
+    async findPlanById(planId) {
+      const rows = await db.select().from(contentPlans).where(eq(contentPlans.id, planId)).limit(1);
+      const plan = rows[0];
+      if (!plan) return null;
+
+      const slots = await db
+        .select()
+        .from(planSlots)
+        .where(eq(planSlots.contentPlanId, plan.id))
+        .orderBy(asc(planSlots.position));
+
+      return toDomainPlan(plan, slots);
+    },
+
     async findSlotById(slotId) {
       const rows = await db.select().from(planSlots).where(eq(planSlots.id, slotId)).limit(1);
       const slot = rows[0];
-      if (!slot) return null;
-      return {
-        id: slot.id,
-        topic: slot.topic,
-        format: slot.format,
-        angle: slot.angle,
-        targetAt: slot.targetAt,
-        status: slot.status,
-        position: slot.position,
-      };
+      return slot ? toDomainSlot(slot) : null;
+    },
+
+    async findAccountIdForSlot(slotId) {
+      const rows = await db
+        .select({ xAccountId: contentPlans.xAccountId })
+        .from(planSlots)
+        .innerJoin(contentPlans, eq(planSlots.contentPlanId, contentPlans.id))
+        .where(eq(planSlots.id, slotId))
+        .limit(1);
+      return rows[0]?.xAccountId ?? null;
+    },
+
+    async findAccountIdForPlan(planId) {
+      const rows = await db
+        .select({ xAccountId: contentPlans.xAccountId })
+        .from(contentPlans)
+        .where(eq(contentPlans.id, planId))
+        .limit(1);
+      return rows[0]?.xAccountId ?? null;
+    },
+
+    async countSlots(planId) {
+      const rows = await db
+        .select({ value: count() })
+        .from(planSlots)
+        .where(eq(planSlots.contentPlanId, planId));
+      return rows[0]?.value ?? 0;
     },
 
     async savePlan(input) {
@@ -94,8 +128,46 @@ export function createPlanRepository(db: Database): PlanRepository {
       });
     },
 
+    async addSlot(planId, slot) {
+      const inserted = await db
+        .insert(planSlots)
+        .values({
+          contentPlanId: planId,
+          topic: slot.topic,
+          format: slot.format,
+          angle: slot.angle,
+          targetAt: slot.targetAt,
+          position: slot.position,
+        })
+        .returning();
+
+      const row = inserted[0];
+      if (!row) throw new Error("Plan slot insert returned no row.");
+      return toDomainSlot(row);
+    },
+
+    async updateSlot(slotId, patch) {
+      const updated = await db
+        .update(planSlots)
+        .set({
+          ...(patch.topic ? { topic: patch.topic } : {}),
+          ...(patch.angle ? { angle: patch.angle } : {}),
+          ...(patch.format ? { format: patch.format } : {}),
+          ...(patch.targetAt ? { targetAt: patch.targetAt } : {}),
+        })
+        .where(eq(planSlots.id, slotId))
+        .returning();
+
+      const row = updated[0];
+      return row ? toDomainSlot(row) : null;
+    },
+
     async updateSlotStatus(slotId, status) {
       await db.update(planSlots).set({ status }).where(eq(planSlots.id, slotId));
+    },
+
+    async deleteSlot(slotId) {
+      await db.delete(planSlots).where(eq(planSlots.id, slotId));
     },
   };
 }

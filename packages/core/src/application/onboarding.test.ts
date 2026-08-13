@@ -35,7 +35,7 @@ function makeIdentity(step: OnboardingStep) {
     saveUserGoals: async () => {
       calls.goalsSaved += 1;
     },
-    listActiveOnboardedUserIds: async () => [],
+    listActiveOnboardedUsers: async () => [],
     findXAccountSummary: async () => null,
     savePreferences: async () => {},
     deleteUser: async () => {},
@@ -104,9 +104,19 @@ describe("saveGoals", () => {
     expect(calls.steps).toEqual(["plan"]);
   });
 
-  it("rejects outside the goals step", async () => {
+  it("rejects before the goals step is reached", async () => {
     const { identity } = makeIdentity("analyzing");
     const result = await saveGoals({ identity }, { userId: "u1", goals });
     expect(result.ok).toBe(false);
+  });
+
+  it("saves when revisiting goals later, without rewinding progress", async () => {
+    const { identity, calls } = makeIdentity("first_draft");
+
+    const result = await saveGoals({ identity }, { userId: "u1", goals });
+
+    expect(result.ok && result.value.onboardingStep).toBe("first_draft");
+    expect(calls.goalsSaved).toBe(1);
+    expect(calls.steps).toEqual([]);
   });
 });

@@ -1,7 +1,8 @@
-import type { PlanCode, UsageMetric } from "../domain/usage";
+import type { Subscription, UsageMetric } from "../domain/usage";
 
 export type UsageRepository = {
-  findPlanCode(userId: string): Promise<PlanCode>;
+  findSubscription(userId: string): Promise<Subscription | null>;
+  startTrial(userId: string, trialEndsAt: Date): Promise<void>;
   countUsage(userId: string, metric: UsageMetric, period: string): Promise<number>;
   countUsageByMetric(userId: string, period: string): Promise<Record<UsageMetric, number>>;
   recordUsage(userId: string, metric: UsageMetric, period: string, quantity: number): Promise<void>;

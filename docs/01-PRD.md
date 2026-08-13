@@ -53,7 +53,7 @@ The AI assists; the human decides. Nothing is ever posted without approval.
 | F6 | Draft generation | Per-slot drafts in user's voice; regenerate with guidance; single posts + threads |
 | F7 | Approval workflow | Approve / edit / reject. Edits are captured as learning signals |
 | F8 | Scheduling & publishing | Queue approved posts; Trigger.dev publishes at scheduled time via X API |
-| F9 | Reminders | Email (Resend) before scheduled publish and when a plan/drafts are ready for review |
+| F9 | Reminders | Web Push when the week is planned, when a draft is waiting, and when a post fails to publish. No email — X OAuth returns no address (D31) |
 | F10 | Usage limits | Per-user generation quotas (free beta), enforced server-side |
 
 ### Post-MVP (Phases 2–3)

@@ -14,6 +14,7 @@ import { createDraftRoutes } from "./routes/drafts";
 import { health } from "./routes/health";
 import { createMeRoutes } from "./routes/me";
 import { createMemoryRoutes } from "./routes/memory";
+import { createNotificationRoutes } from "./routes/notifications";
 import { createOnboardingRoutes } from "./routes/onboarding";
 import { createPlanRoutes } from "./routes/plans";
 import { createScheduleRoutes } from "./routes/schedule";
@@ -45,6 +46,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", createOnboardingRoutes(deps));
   app.route("/", createVoiceRoutes(deps));
   app.route("/", createMemoryRoutes(deps));
+  app.route("/", createNotificationRoutes(deps));
   app.route("/", createPlanRoutes(deps));
   app.route("/", createDraftRoutes(deps));
   app.route("/", createScheduleRoutes(deps));

@@ -176,7 +176,12 @@ describe("getSettings", () => {
   it("reports usage for every metric against the plan limit", async () => {
     const { identity } = makeIdentity();
     const usage = {
-      findPlanCode: async () => "free_beta" as const,
+      findSubscription: async () => ({
+        planCode: "free_beta" as const,
+        status: "active" as const,
+        trialEndsAt: null,
+      }),
+      startTrial: async () => {},
       countUsage: async () => 10,
       countUsageByMetric: async () => ({
         draft_generated: 10,

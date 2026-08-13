@@ -27,10 +27,10 @@ module.exports = {
     {
       name: "provider-sdks-only-in-their-adapter",
       severity: "error",
-      from: { pathNot: "^packages/(ai|payment)" },
+      from: { pathNot: "^packages/(ai|payment|notifications)" },
       to: {
         dependencyTypes: ["npm"],
-        path: "^(openai|@anthropic-ai|groq-sdk|stripe|paystack)",
+        path: "^(openai|@anthropic-ai|groq-sdk|stripe|paystack|web-push)",
       },
     },
     {

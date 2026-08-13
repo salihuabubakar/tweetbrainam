@@ -11,10 +11,13 @@ export const slotStatusSchema = z.enum([
   "skipped",
 ]);
 
+export const slotTopicSchema = z.string().min(3).max(120);
+export const slotAngleSchema = z.string().min(10).max(400);
+
 export const plannedSlotSchema = z.object({
-  topic: z.string().min(3).max(120),
+  topic: slotTopicSchema,
   format: postFormatSchema,
-  angle: z.string().min(10).max(400),
+  angle: slotAngleSchema,
 });
 
 export const weeklyPlanAnalysisSchema = z.object({
@@ -27,6 +30,24 @@ export const planSlotSchema = plannedSlotSchema.extend({
   targetAt: z.string(),
   status: slotStatusSchema,
   position: z.number().int(),
+});
+
+export const updatePlanSlotInputSchema = z
+  .object({
+    topic: slotTopicSchema.optional(),
+    angle: slotAngleSchema.optional(),
+    format: postFormatSchema.optional(),
+    targetAt: z.coerce.date().optional(),
+  })
+  .refine((patch) => Object.values(patch).some((value) => value !== undefined), {
+    message: "Nothing to change.",
+  });
+
+export const addPlanSlotInputSchema = z.object({
+  topic: slotTopicSchema,
+  angle: slotAngleSchema,
+  format: postFormatSchema.default("single"),
+  targetAt: z.coerce.date(),
 });
 
 export const contentPlanSchema = z.object({
@@ -42,3 +63,5 @@ export type SlotStatusValue = z.infer<typeof slotStatusSchema>;
 export type WeeklyPlanAnalysis = z.infer<typeof weeklyPlanAnalysisSchema>;
 export type PlanSlotValue = z.infer<typeof planSlotSchema>;
 export type ContentPlanValue = z.infer<typeof contentPlanSchema>;
+export type UpdatePlanSlotInput = z.infer<typeof updatePlanSlotInputSchema>;
+export type AddPlanSlotInput = z.infer<typeof addPlanSlotInputSchema>;

@@ -11,6 +11,24 @@ export const onboardingStepSchema = z.enum([
   "done",
 ]);
 
+export const onboardingStepOrder = onboardingStepSchema.options;
+
+export const revisitableStepValues: readonly OnboardingStepValue[] = [
+  "analyzing",
+  "voice",
+  "goals",
+  "plan",
+  "first_draft",
+];
+
+export function canRevisitStep(
+  furthest: OnboardingStepValue,
+  target: OnboardingStepValue,
+): boolean {
+  if (!revisitableStepValues.includes(target)) return false;
+  return onboardingStepOrder.indexOf(furthest) >= onboardingStepOrder.indexOf(target);
+}
+
 export const saveGoalsInputSchema = z.object({
   goal: contentGoalSchema,
   postsPerWeek: z.number().int().min(1).max(21),
@@ -27,6 +45,8 @@ export const importPostsInputSchema = z.object({
 
 export type ImportPostsInput = z.infer<typeof importPostsInputSchema>;
 
-export type OnboardingStepValue = z.infer<typeof onboardingStepSchema>;
+type OnboardingStepValue = z.infer<typeof onboardingStepSchema>;
+
+export type { OnboardingStepValue };
 export type SaveGoalsInput = z.infer<typeof saveGoalsInputSchema>;
 export type OnboardingState = z.infer<typeof onboardingStateSchema>;

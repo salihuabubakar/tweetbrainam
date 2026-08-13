@@ -24,6 +24,7 @@ import type {
   GenerateDraftDeps,
   GenerateWeeklyPlanDeps,
   IngestAccountPostsDeps,
+  NotifyUserDeps,
   PublishScheduledPostDeps,
 } from "@tweetbrainam/core";
 import {
@@ -32,11 +33,13 @@ import {
   createIdentityRepository,
   createIngestionRepository,
   createMemoryRepository,
+  createNotificationRepository,
   createPlanRepository,
   createScheduleRepository,
   createUsageRepository,
   createVoiceRepository,
 } from "@tweetbrainam/db";
+import { resolvePushSender } from "@tweetbrainam/notifications";
 import {
   createAesGcmTokenCipher,
   createXContentClient,
@@ -74,6 +77,8 @@ export function createIngestionDeps(): IngestAccountPostsDeps {
     ingestion: createIngestionRepository(db),
     xContent: createXContentClient(),
     cipher: createAesGcmTokenCipher(env.TOKEN_ENCRYPTION_KEY),
+    usage: createUsageRepository(db),
+    clock: { now: () => new Date() },
   };
 }
 
@@ -89,6 +94,17 @@ export function createVoiceDeps(): BuildVoiceProfileDeps {
       schema: voiceAnalysisSchema,
     }),
   };
+}
+
+export function createNotifyDeps(): NotifyUserDeps | null {
+  const push = resolvePushSender({
+    publicKey: env.VAPID_PUBLIC_KEY,
+    privateKey: env.VAPID_PRIVATE_KEY,
+    subject: env.VAPID_SUBJECT,
+  });
+
+  if (!push) return null;
+  return { notifications: createNotificationRepository(database()), push };
 }
 
 export function createMemoryDeps(): ExtractMemoryFactsDeps {
@@ -119,6 +135,8 @@ export function createPublishDeps(): PublishScheduledPostDeps {
     ingestion: createIngestionRepository(db),
     publisher: createXPublishClient(),
     cipher: createAesGcmTokenCipher(env.TOKEN_ENCRYPTION_KEY),
+    usage: createUsageRepository(db),
+    clock: { now: () => new Date() },
   };
 }
 

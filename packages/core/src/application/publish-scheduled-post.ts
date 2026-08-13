@@ -8,8 +8,9 @@ import type { PlanRepository } from "../ports/plan-repository";
 import type { ScheduleRepository } from "../ports/schedule-repository";
 import type { TokenCipher } from "../ports/security";
 import type { XPublishClient } from "../ports/x-publish-client";
+import { type QuotaDeps, recordUsage } from "./enforce-quota";
 
-export type PublishScheduledPostDeps = {
+export type PublishScheduledPostDeps = QuotaDeps & {
   schedule: ScheduleRepository;
   drafts: DraftRepository;
   plans: PlanRepository;
@@ -78,9 +79,12 @@ export async function publishScheduledPost(
 
   await deps.schedule.setStatus(post.id, "published", {
     xPostIds: result.value.xPostIds,
-    publishedAt: new Date(),
+    publishedAt: deps.clock.now(),
   });
   if (post.planSlotId) await deps.plans.updateSlotStatus(post.planSlotId, "published");
+
+  const userId = await deps.ingestion.findUserIdForAccount(post.xAccountId);
+  if (userId) await recordUsage(deps, { userId, metric: "post_published" });
 
   return ok({ xPostIds: result.value.xPostIds, alreadyPublished: false });
 }

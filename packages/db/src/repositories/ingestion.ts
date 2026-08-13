@@ -63,6 +63,15 @@ export function createIngestionRepository(db: Database): IngestionRepository {
         .where(eq(xAccounts.id, xAccountId));
     },
 
+    async findUserIdForAccount(xAccountId) {
+      const rows = await db
+        .select({ userId: xAccounts.userId })
+        .from(xAccounts)
+        .where(eq(xAccounts.id, xAccountId))
+        .limit(1);
+      return rows[0]?.userId ?? null;
+    },
+
     async findAccessTokenForAccount(xAccountId) {
       const rows = await db
         .select({ accessTokenEnc: xAccounts.accessTokenEnc })

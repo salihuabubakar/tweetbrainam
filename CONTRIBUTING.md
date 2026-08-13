@@ -13,7 +13,7 @@ The full rulebook is [`docs/11-ENGINEERING-PRINCIPLES.md`](docs/11-ENGINEERING-P
    docs(prd): clarify voice fidelity metric
    ```
 4. Open a small PR (≤400 changed lines target). The description states *why*, links the relevant doc or issue, and cites any rules it touches (R19).
-5. CI must be green — lint, typecheck, tests, prompt evals, dependency-boundary check. No admin merges (R20). Broken `main` = fix or revert within the hour, revert preferred.
+5. CI must be green — lint, build, typecheck, tests, dependency-boundary check. No admin merges (R20). Broken `main` = fix or revert within the hour, revert preferred. (Prompt evals, E2E and axe checks are Phase 2 and not yet in CI.)
 
 ## Code style
 

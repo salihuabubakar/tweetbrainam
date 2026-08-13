@@ -10,7 +10,15 @@ export const connectionStatusSchema = z.enum([
 
 export const usageMetricSchema = z.enum(["draft_generated", "plan_generated", "post_published"]);
 
-export const planCodeSchema = z.enum(["free_beta", "pro", "team"]);
+export const planCodeSchema = z.enum(["trial", "free_beta", "pro", "team"]);
+
+export const subscriptionStatusSchema = z.enum([
+  "trialing",
+  "active",
+  "expired",
+  "canceled",
+  "past_due",
+]);
 
 export const xAccountSummarySchema = z.object({
   handle: z.string(),
@@ -37,6 +45,10 @@ export const settingsSummarySchema = z.object({
   plan: z.object({
     code: planCodeSchema,
     period: z.string(),
+    status: subscriptionStatusSchema,
+    trialEndsAt: z.coerce.date().nullable(),
+    trialDaysRemaining: z.number().int(),
+    isExpired: z.boolean(),
     usage: z.array(usageLineSchema),
   }),
 });

@@ -1,5 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import {
+  createDraftInputSchema,
   editDraftInputSchema,
   regenerateDraftInputSchema,
   rejectDraftInputSchema,
@@ -10,6 +11,7 @@ import { z } from "zod";
 import type { AppDeps } from "../deps";
 import { ApiError, notFound } from "../lib/errors";
 import { createPublishScheduler } from "../lib/publish-scheduler";
+import { requireQuota } from "../lib/require-quota";
 import { requireUserId } from "../middleware/session";
 import type { AppEnv } from "../types";
 
@@ -21,6 +23,10 @@ const toApiError = (error: DomainError): ApiError => {
       return new ApiError("draft_not_editable", error.message, 409);
     case "voice_profile_missing":
       return new ApiError("conflict", error.message, 409);
+    case "quota_exceeded":
+      return new ApiError("quota_exceeded", error.message, 429);
+    case "trial_expired":
+      return new ApiError("trial_expired", error.message, 402);
     default:
       return new ApiError("internal", error.message, 500);
   }
@@ -57,11 +63,28 @@ export function createDraftRoutes(deps: AppDeps) {
       zValidator("json", regenerateDraftInputSchema),
       async (c) => {
         const userId = requireUserId(c.get("userId"));
+        await requireQuota(deps, { userId, metric: "draft_generated" });
+
         const { guidance } = c.req.valid("json");
-        await deps.jobs.startDraftGeneration(userId, c.req.param("id"), guidance);
+        await deps.jobs.startDraftGeneration(userId, {
+          planSlotId: c.req.param("id"),
+          guidance,
+        });
         return c.json({ ok: true }, 202);
       },
     )
+
+    .post("/v1/drafts", zValidator("json", createDraftInputSchema), async (c) => {
+      const userId = requireUserId(c.get("userId"));
+      await requireQuota(deps, { userId, metric: "draft_generated" });
+
+      const { topic, angle, format, guidance } = c.req.valid("json");
+      await deps.jobs.startDraftGeneration(userId, {
+        brief: { topic, angle, format },
+        guidance,
+      });
+      return c.json({ ok: true }, 202);
+    })
 
     .put("/v1/drafts/:id/content", zValidator("json", editDraftInputSchema), async (c) => {
       requireUserId(c.get("userId"));

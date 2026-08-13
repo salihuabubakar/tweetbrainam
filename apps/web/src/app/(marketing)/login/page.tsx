@@ -10,8 +10,8 @@ export default async function LoginPage() {
   if (user) redirect(user.onboardingStep === "done" ? "/today" : "/onboarding");
 
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center px-6">
-      <div className="flex w-full max-w-sm flex-col items-center gap-6 rounded-lg border border-border bg-card p-8 text-center">
+    <main className="flex min-h-svh flex-col items-center justify-center px-4 py-12 sm:px-6">
+      <div className="flex w-full max-w-sm flex-col items-center gap-6 rounded-lg border border-border bg-card p-6 text-center sm:p-8">
         <h1 className="font-semibold text-2xl tracking-tight">Welcome to TweetBrainam</h1>
         <p className="text-muted-foreground text-sm">
           Sign in with your X account. We only read your posts to learn your voice — we never post

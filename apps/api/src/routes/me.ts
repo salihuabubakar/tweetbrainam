@@ -1,3 +1,4 @@
+import { isTrialExpired, loadSubscription, trialDaysRemaining } from "@tweetbrainam/core";
 import { Hono } from "hono";
 import type { AppDeps } from "../deps";
 import { notFound } from "../lib/errors";
@@ -9,6 +10,17 @@ export function createMeRoutes(deps: AppDeps) {
     const userId = requireUserId(c.get("userId"));
     const user = await deps.identity.findUserById(userId);
     if (!user) throw notFound("Your account no longer exists.");
-    return c.json({ user });
+
+    const now = deps.clock.now();
+    const subscription = await loadSubscription(deps, userId);
+
+    return c.json({
+      user,
+      trial: {
+        planCode: subscription.planCode,
+        isExpired: isTrialExpired(subscription, now),
+        daysRemaining: trialDaysRemaining(subscription, now),
+      },
+    });
   });
 }

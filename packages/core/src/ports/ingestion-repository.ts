@@ -18,6 +18,7 @@ export type ExamplePost = {
 
 export type IngestionRepository = {
   findAccountByUserId(userId: string): Promise<IngestionAccount | null>;
+  findUserIdForAccount(xAccountId: string): Promise<string | null>;
   listPostsMissingEmbedding(
     xAccountId: string,
     limit: number,

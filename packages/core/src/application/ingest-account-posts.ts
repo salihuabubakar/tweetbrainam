@@ -4,12 +4,14 @@ import {
   type IngestionSummary,
   isUsableForVoiceProfile,
 } from "../domain/ingestion";
+import { PLAN_SCAN_LIMITS } from "../domain/usage";
 import { type Result, err, ok } from "../lib/result";
 import type { IngestionRepository } from "../ports/ingestion-repository";
 import type { TokenCipher } from "../ports/security";
 import type { FetchFailure, XContentClient } from "../ports/x-content-client";
+import { type QuotaDeps, loadSubscription } from "./enforce-quota";
 
-export type IngestAccountPostsDeps = {
+export type IngestAccountPostsDeps = QuotaDeps & {
   ingestion: IngestionRepository;
   xContent: XContentClient;
   cipher: TokenCipher;
@@ -36,12 +38,21 @@ export async function ingestAccountPosts(
     return err(domainError("x_connection_revoked", "No connected X account found."));
   }
 
+  const subscription = await loadSubscription(deps, input.userId);
+  const alreadyStored = await deps.ingestion.countIngestedPosts(account.id);
+  const scanBudget = PLAN_SCAN_LIMITS[subscription.planCode] - alreadyStored;
+
+  if (scanBudget <= 0) {
+    await deps.ingestion.setAnalysisState(account.id, "complete");
+    return ok({ fetched: 0, stored: 0, newestPostId: null });
+  }
+
   await deps.ingestion.setAnalysisState(account.id, "running");
 
   const fetchResult = await deps.xContent.fetchRecentPosts({
     accessToken: deps.cipher.decrypt(account.accessTokenEnc),
     xUserId: account.xUserId,
-    maxPosts: input.maxPosts,
+    maxPosts: Math.min(input.maxPosts, scanBudget),
     sincePostId: account.lastIngestedPostId,
   });
 
@@ -52,7 +63,7 @@ export async function ingestAccountPosts(
   }
 
   const posts = fetchResult.value;
-  const usablePosts = posts.filter(isUsableForVoiceProfile);
+  const usablePosts = posts.filter(isUsableForVoiceProfile).slice(0, scanBudget);
   const stored = await deps.ingestion.saveIngestedPosts(account.id, usablePosts);
 
   const newestPostId = posts.reduce<string | null>(

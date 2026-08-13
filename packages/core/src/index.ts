@@ -29,17 +29,36 @@ export {
 export { startXSignIn, type StartXSignInDeps } from "./application/start-x-sign-in";
 export {
   autoAdvanceableSteps,
+  canRevisit,
   contentGoals,
+  hasReached,
   nextOnboardingStep,
+  onboardingStepIndex,
+  revisitableSteps,
   type ContentGoal,
   type UserGoals,
   type UserPreferences,
 } from "./domain/onboarding";
 export {
+  addPlanSlot,
+  removePlanSlot,
+  restorePlanSlot,
+  skipPlanSlot,
+  updatePlanSlot,
+  type EditPlanSlotsDeps,
+} from "./application/edit-plan-slots";
+export {
+  canEditSlot,
+  canRemoveSlot,
+  canSkipSlot,
   DEFAULT_POSTING_HOURS,
+  isPlanningHourInZone,
   localWallClockToUtc,
+  MAX_SLOTS_PER_PLAN,
   mondayOf,
+  nextMondayInZone,
   nextMondayOf,
+  PLANNING_HOUR,
   planStatuses,
   postFormats,
   resolvePostingWindows,
@@ -51,7 +70,12 @@ export {
   type PostingWindow,
   type SlotStatus,
 } from "./domain/planning";
-export type { NewPlanSlot, PlanRepository, SavePlanInput } from "./ports/plan-repository";
+export type {
+  NewPlanSlot,
+  PlanRepository,
+  SavePlanInput,
+  SlotPatch,
+} from "./ports/plan-repository";
 export {
   canTransition,
   draftAuthors,
@@ -73,6 +97,7 @@ export type {
 } from "./ports/draft-repository";
 export {
   generateDraft,
+  type DraftBrief,
   type DraftPromptContext,
   type DraftRequest,
   type GenerateDraftDeps,
@@ -102,18 +127,34 @@ export type {
 } from "./ports/schedule-repository";
 export type { PublishFailure, PublishInput, XPublishClient } from "./ports/x-publish-client";
 export {
+  canGenerate,
   checkQuota,
   currentPeriod,
+  GRANDFATHERED_SUBSCRIPTION,
+  isTrialExpired,
   planCodes,
   PLAN_LIMITS,
+  PLAN_SCAN_LIMITS,
+  quotaPeriod,
+  subscriptionStatuses,
+  TRIAL_DAYS,
+  trialDaysRemaining,
+  trialEndsAtFrom,
   usageMetrics,
   type PlanCode,
   type PlanLimits,
   type QuotaCheck,
+  type Subscription,
+  type SubscriptionStatus,
   type UsageMetric,
 } from "./domain/usage";
 export type { UsageRepository } from "./ports/usage-repository";
-export { checkUserQuota, recordUsage, type QuotaDeps } from "./application/enforce-quota";
+export {
+  checkUserQuota,
+  loadSubscription,
+  recordUsage,
+  type QuotaDeps,
+} from "./application/enforce-quota";
 export {
   publishScheduledPost,
   type PublishScheduledPostDeps,
@@ -176,6 +217,23 @@ export {
   type NewMemoryFact,
 } from "./domain/memory";
 export type { MemoryRepository } from "./ports/memory-repository";
+export {
+  draftReadyNotification,
+  notificationKinds,
+  publishFailedNotification,
+  weekPlannedNotification,
+  type NewPushSubscription,
+  type Notification,
+  type NotificationKind,
+  type PushSubscription,
+} from "./domain/notifications";
+export type { NotificationRepository } from "./ports/notification-repository";
+export type { PushDelivery, PushSender } from "./ports/push-sender";
+export {
+  notifyUser,
+  type NotifyUserDeps,
+  type NotifyUserOutput,
+} from "./application/notify-user";
 export {
   extractMemoryFacts,
   type ExtractMemoryFactsDeps,

@@ -1,5 +1,6 @@
 "use client";
 
+import { TabBar } from "@/components/shared/tab-bar";
 import { apiUrl } from "@/lib/api-url";
 import { useDurableState } from "@/lib/durable-state";
 import {
@@ -7,9 +8,11 @@ import {
   type DraftStatusValue,
   draftListItemSchema,
 } from "@tweetbrainam/contracts";
-import { cn } from "@tweetbrainam/ui";
 import { useCallback, useEffect, useState } from "react";
+import { ComposeDraft } from "./compose-draft";
 import { DraftCard } from "./draft-card";
+
+const POLL_INTERVAL_MS = 3000;
 
 const tabs: { status: DraftStatusValue; label: string; empty: string }[] = [
   {
@@ -29,6 +32,24 @@ const tabs: { status: DraftStatusValue; label: string; empty: string }[] = [
   },
 ];
 
+async function fetchDrafts(status: DraftStatusValue): Promise<DraftListItemValue[]> {
+  const response = await fetch(`${apiUrl}/v1/drafts?status=${status}`, { credentials: "include" });
+  if (!response.ok) return [];
+
+  const body = (await response.json()) as { drafts: unknown[] };
+  const parsed = draftListItemSchema.array().safeParse(body.drafts);
+  return parsed.success ? parsed.data : [];
+}
+
+function WritingCard({ draft }: { draft: DraftListItemValue }) {
+  return (
+    <li className="flex flex-col gap-2 rounded-lg border border-border border-dashed bg-card p-4">
+      <span className="font-medium text-sm">{draft.topic ?? "Your post"}</span>
+      <span className="text-muted-foreground text-sm">Writing it in your voice…</span>
+    </li>
+  );
+}
+
 export function DraftsList() {
   const { value: status, setValue: setStatus } = useDurableState<DraftStatusValue>(
     "drafts.status",
@@ -36,46 +57,39 @@ export function DraftsList() {
   );
   const [drafts, setDrafts] = useState<DraftListItemValue[] | null>(null);
 
+  const isQueue = status === "needs_review";
+
   const load = useCallback(async () => {
-    const response = await fetch(`${apiUrl}/v1/drafts?status=${status}`, {
-      credentials: "include",
-    });
-    if (!response.ok) {
-      setDrafts([]);
-      return;
-    }
-    const body = (await response.json()) as { drafts: unknown[] };
-    const parsed = draftListItemSchema.array().safeParse(body.drafts);
-    setDrafts(parsed.success ? parsed.data : []);
-  }, [status]);
+    const [current, generating] = await Promise.all([
+      fetchDrafts(status),
+      isQueue ? fetchDrafts("generating") : Promise.resolve([]),
+    ]);
+
+    setDrafts([...generating, ...current]);
+  }, [status, isQueue]);
 
   useEffect(() => {
     setDrafts(null);
     void load();
-  }, [load]);
+
+    if (!isQueue) return;
+
+    const timer = setInterval(load, POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [load, isQueue]);
 
   const active = tabs.find((tab) => tab.status === status) ?? tabs[0];
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="inline-flex gap-1 self-start rounded-lg border border-border bg-muted p-1">
-        {tabs.map((tab) => (
-          <button
-            key={tab.status}
-            type="button"
-            aria-current={status === tab.status ? "true" : undefined}
-            onClick={() => setStatus(tab.status)}
-            className={cn(
-              "rounded-md px-3 py-1.5 font-medium text-sm transition-colors",
-              status === tab.status
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <ComposeDraft onQueued={load} />
+
+      <TabBar
+        tabs={tabs.map((tab) => ({ value: tab.status, label: tab.label }))}
+        active={status}
+        onSelect={setStatus}
+        label="Draft status"
+      />
 
       {drafts === null ? (
         <p className="text-muted-foreground text-sm">Loading…</p>
@@ -85,9 +99,13 @@ export function DraftsList() {
         </div>
       ) : (
         <ul className="flex flex-col gap-3">
-          {drafts.map((draft) => (
-            <DraftCard key={draft.id} draft={draft} onChanged={load} />
-          ))}
+          {drafts.map((draft) =>
+            draft.status === "generating" ? (
+              <WritingCard key={draft.id} draft={draft} />
+            ) : (
+              <DraftCard key={draft.id} draft={draft} onChanged={load} />
+            ),
+          )}
         </ul>
       )}
     </div>

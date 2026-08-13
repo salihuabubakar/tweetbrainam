@@ -8,7 +8,7 @@ import type {
   VoiceTraitsValue,
 } from "@tweetbrainam/contracts";
 import { Button } from "@tweetbrainam/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TagList } from "./tag-list";
 import { TraitControls } from "./trait-controls";
 
@@ -18,16 +18,22 @@ const sourceLabels: Record<VoiceProfileValue["source"], string> = {
   refinement: "Refined from your edits",
 };
 
+export type VoiceSection = "voice" | "topics";
+
 export function VoiceEditor({
   profile,
+  section,
   isRebuilding,
   onRebuild,
   onSaved,
+  onDirtyChange,
 }: {
   profile: VoiceProfileValue;
+  section: VoiceSection;
   isRebuilding: boolean;
   onRebuild: () => void;
   onSaved: (next: VoiceProfileValue) => void;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
   const {
     value: edit,
@@ -43,6 +49,10 @@ export function VoiceEditor({
 
   const saved = { traits: profile.traits, topics: profile.topics };
   const isDirty = JSON.stringify(edit) !== JSON.stringify(saved);
+
+  useEffect(() => {
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   function setTraits(traits: VoiceTraitsValue) {
     setEdit({ ...edit, traits });
@@ -96,63 +106,69 @@ export function VoiceEditor({
         </div>
       </div>
 
-      <TraitControls traits={edit.traits} onChange={setTraits} />
+      {section === "voice" ? (
+        <>
+          <TraitControls traits={edit.traits} onChange={setTraits} />
 
-      <TagList
-        label="Rules we follow when writing as you"
-        hint="The most direct control you have. Write them as instructions — 'never open with a question', 'always use British spelling'."
-        placeholder="Never start a post with 'In today's world'"
-        items={edit.traits.rules}
-        max={10}
-        onChange={(rules) => setTraits({ ...edit.traits, rules })}
-      />
+          <TagList
+            label="Rules we follow when writing as you"
+            hint="The most direct control you have. Write them as instructions — 'never open with a question', 'always use British spelling'."
+            placeholder="Never start a post with 'In today's world'"
+            items={edit.traits.rules}
+            max={10}
+            onChange={(rules) => setTraits({ ...edit.traits, rules })}
+          />
 
-      <TagList
-        label="Words and phrases that are yours"
-        hint="Turns of phrase we should keep using — and ones we should never put in your mouth."
-        placeholder="Says 'ship it' rather than 'launch'"
-        items={edit.traits.vocabularyQuirks}
-        max={10}
-        onChange={(vocabularyQuirks) => setTraits({ ...edit.traits, vocabularyQuirks })}
-      />
+          <TagList
+            label="Words and phrases that are yours"
+            hint="Turns of phrase we should keep using — and ones we should never put in your mouth."
+            placeholder="Says 'ship it' rather than 'launch'"
+            items={edit.traits.vocabularyQuirks}
+            max={10}
+            onChange={(vocabularyQuirks) => setTraits({ ...edit.traits, vocabularyQuirks })}
+          />
 
-      <TagList
-        label="Formats you favour"
-        hint="Shapes your posts tend to take."
-        placeholder="Short thread with a numbered list"
-        items={edit.traits.favouriteFormats}
-        max={6}
-        onChange={(favouriteFormats) => setTraits({ ...edit.traits, favouriteFormats })}
-      />
+          <TagList
+            label="Formats you favour"
+            hint="Shapes your posts tend to take."
+            placeholder="Short thread with a numbered list"
+            items={edit.traits.favouriteFormats}
+            max={6}
+            onChange={(favouriteFormats) => setTraits({ ...edit.traits, favouriteFormats })}
+          />
+        </>
+      ) : (
+        <>
+          <TagList
+            label="What you write about"
+            hint="We plan your week around these. Keep at least one."
+            placeholder="Backend architecture"
+            items={edit.topics}
+            max={12}
+            onChange={(topics) => setEdit({ ...edit, topics })}
+          />
 
-      <TagList
-        label="What you write about"
-        hint="We plan your week around these. Keep at least one."
-        placeholder="Backend architecture"
-        items={edit.topics}
-        max={12}
-        onChange={(topics) => setEdit({ ...edit, topics })}
-      />
-
-      {profile.sampleSentences.length > 0 ? (
-        <section className="flex flex-col gap-2">
-          <h2 className="font-medium text-sm">Sentences that sound most like you</h2>
-          <p className="text-muted-foreground text-xs">
-            Pulled from your own posts. These aren't editable — they're the evidence, not the
-            setting.
-          </p>
-          <div className="flex flex-col gap-2">
-            {profile.sampleSentences.map((sentence) => (
-              <blockquote
-                key={sentence}
-                className="border-border border-l-2 pl-3 text-muted-foreground text-sm italic"
-              >
-                {sentence}
-              </blockquote>
-            ))}
-          </div>
-        </section>
-      ) : null}
+          {profile.sampleSentences.length > 0 ? (
+            <section className="flex flex-col gap-2">
+              <h2 className="font-medium text-sm">Sentences that sound most like you</h2>
+              <p className="text-muted-foreground text-xs">
+                Pulled from your own posts. These aren't editable — they're the evidence, not the
+                setting.
+              </p>
+              <div className="flex flex-col gap-2">
+                {profile.sampleSentences.map((sentence) => (
+                  <blockquote
+                    key={sentence}
+                    className="border-border border-l-2 pl-3 text-muted-foreground text-sm italic"
+                  >
+                    {sentence}
+                  </blockquote>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </>
+      )}
 
       {error ? (
         <p role="alert" className="text-destructive text-sm">
@@ -160,7 +176,7 @@ export function VoiceEditor({
         </p>
       ) : null}
 
-      <div className="sticky bottom-4 flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+      <div className="sticky bottom-20 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3 md:bottom-4">
         <Button disabled={!isDirty || isSaving} onClick={handleSave}>
           {isSaving ? "Saving…" : `Save as version ${profile.version + 1}`}
         </Button>

@@ -12,7 +12,7 @@ Docker-first development: `docker compose up` gives a complete, reproducible env
 | `api` | `apps/api/Dockerfile` (dev target) | 3001 | `tsx watch`, bind-mount source |
 | `postgres` | `pgvector/pgvector:pg16` | 5432 | Volume `pgdata`; healthcheck `pg_isready` |
 | `redis` | `redis:7-alpine` | 6379 | `--appendonly yes`, volume |
-| `mailpit` | `axllent/mailpit` | 8025/1025 | Catches all dev email (Resend SMTP dev mode) |
+| ~~`mailpit`~~ | — | — | Removed with D31. Notifications are Web Push; there is no email to catch |
 | `migrate` | `packages/db` runner | — | One-shot: `drizzle-kit migrate` on up, `depends_on: postgres: healthy` |
 
 Notes:
@@ -64,7 +64,7 @@ Notes:
 | X | `X_CLIENT_ID`, `X_CLIENT_SECRET`, `X_REDIRECT_URI` | dev app creds | prod app creds |
 | AI | `GROK_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `AI_FAILOVER_ORDER` | personal keys | org keys |
 | Crypto | `TOKEN_ENCRYPTION_KEY` (32B base64), `SESSION_SECRET` | generated | KMS/secret manager |
-| Email | `RESEND_API_KEY`, `EMAIL_FROM` | mailpit override | live |
+| Push | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | optional; unset disables sending | live |
 | Payment (Phase 3) | `PAYMENT_PROVIDER` (`paystack` default; `flutterwave`/`stripe`/`lemonsqueezy`), `PAYSTACK_SECRET_KEY`, `PAYSTACK_WEBHOOK_SECRET` (or the active provider's equivalent pair) | provider test keys | live keys |
 | Jobs | `TRIGGER_SECRET_KEY` | dev project | prod project |
 | Observability | `SENTRY_DSN`, `OTEL_EXPORTER_OTLP_ENDPOINT` | optional | required |

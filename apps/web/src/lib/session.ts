@@ -1,4 +1,4 @@
-import type { OnboardingStepValue } from "@tweetbrainam/contracts";
+import type { OnboardingStepValue, PlanCodeValue } from "@tweetbrainam/contracts";
 import { redirect } from "next/navigation";
 import { fetchFromApi } from "./server-api";
 
@@ -10,9 +10,24 @@ export type CurrentUser = {
   onboardingStep: OnboardingStepValue;
 };
 
+export type TrialState = {
+  planCode: PlanCodeValue;
+  isExpired: boolean;
+  daysRemaining: number;
+};
+
+export type CurrentSession = {
+  user: CurrentUser;
+  trial: TrialState;
+};
+
+export async function getCurrentSession(): Promise<CurrentSession | null> {
+  return fetchFromApi<CurrentSession>("/v1/me");
+}
+
 export async function getCurrentUser(): Promise<CurrentUser | null> {
-  const response = await fetchFromApi<{ user: CurrentUser }>("/v1/me");
-  return response?.user ?? null;
+  const session = await getCurrentSession();
+  return session?.user ?? null;
 }
 
 export async function requireUser(): Promise<CurrentUser> {
@@ -21,8 +36,13 @@ export async function requireUser(): Promise<CurrentUser> {
   return user;
 }
 
+export async function requireOnboardedSession(): Promise<CurrentSession> {
+  const session = await getCurrentSession();
+  if (!session) redirect("/login");
+  if (session.user.onboardingStep !== "done") redirect("/onboarding");
+  return session;
+}
+
 export async function requireOnboardedUser(): Promise<CurrentUser> {
-  const user = await requireUser();
-  if (user.onboardingStep !== "done") redirect("/onboarding");
-  return user;
+  return (await requireOnboardedSession()).user;
 }

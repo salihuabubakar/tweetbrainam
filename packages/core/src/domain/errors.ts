@@ -14,6 +14,7 @@ export const domainErrorCodes = [
   "publish_failed",
   "publish_canceled",
   "quota_exceeded",
+  "trial_expired",
   "validation_failed",
 ] as const;
 

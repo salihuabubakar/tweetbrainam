@@ -5,6 +5,7 @@ import type {
   IngestionRepository,
   JobRunner,
   MemoryRepository,
+  NotificationRepository,
   OAuthStateStore,
   PkceGenerator,
   PlanRepository,
@@ -21,6 +22,7 @@ import {
   createIdentityRepository,
   createIngestionRepository,
   createMemoryRepository,
+  createNotificationRepository,
   createPlanRepository,
   createScheduleRepository,
   createUsageRepository,
@@ -42,6 +44,7 @@ export type AppDeps = {
   ingestion: IngestionRepository;
   voice: VoiceRepository;
   memory: MemoryRepository;
+  notifications: NotificationRepository;
   plans: PlanRepository;
   drafts: DraftRepository;
   schedule: ScheduleRepository;
@@ -68,6 +71,7 @@ export function createAppDeps(): AppDeps {
     ingestion: createIngestionRepository(db),
     voice: createVoiceRepository(db),
     memory: createMemoryRepository(db),
+    notifications: createNotificationRepository(db),
     plans: createPlanRepository(db),
     drafts: createDraftRepository(db),
     schedule: createScheduleRepository(db),

@@ -11,28 +11,51 @@ const metricLabels: Record<UsageMetricValue, string> = {
 };
 
 const planLabels: Record<Plan["code"], string> = {
+  trial: "Free trial",
   free_beta: "Free beta",
   pro: "Pro",
   team: "Team",
 };
 
-function periodLabel(period: string): string {
-  const [year, month] = period.split("-").map(Number);
-  if (!year || !month) return period;
+function periodLabel(plan: Plan): string {
+  if (plan.code === "trial") return "your trial";
+
+  const [year, month] = plan.period.split("-").map(Number);
+  if (!year || !month) return plan.period;
   return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString(undefined, {
     month: "long",
     year: "numeric",
   });
 }
 
-export function UsageCard({ plan }: { plan: Plan }) {
+function statusLine(plan: Plan): string {
+  if (plan.isExpired) {
+    return "Your trial has ended. Everything you made is still here to read.";
+  }
+
+  if (plan.code === "trial") {
+    const days = plan.trialDaysRemaining;
+    return days === 1 ? "Last day of your trial." : `${days} days left in your trial.`;
+  }
+
+  return `What you've used in ${periodLabel(plan)}. Everything resets on the first of the month.`;
+}
+
+export function PlanCard({ plan }: { plan: Plan }) {
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6">
+    <section
+      className={
+        plan.isExpired
+          ? "flex flex-col gap-4 rounded-lg border border-destructive/40 bg-card p-6"
+          : "flex flex-col gap-4 rounded-lg border border-border bg-card p-6"
+      }
+    >
       <div className="flex flex-col gap-1">
-        <h2 className="font-medium text-sm">{planLabels[plan.code]} plan</h2>
-        <p className="text-muted-foreground text-sm">
-          What you've used in {periodLabel(plan.period)}. Everything resets on the first of the
-          month.
+        <h2 className="font-medium text-sm">{planLabels[plan.code]}</h2>
+        <p
+          className={plan.isExpired ? "text-destructive text-sm" : "text-muted-foreground text-sm"}
+        >
+          {statusLine(plan)}
         </p>
       </div>
 
@@ -57,7 +80,9 @@ export function UsageCard({ plan }: { plan: Plan }) {
               </div>
               {line.remaining === 0 ? (
                 <span className="text-destructive text-xs">
-                  You've used all of these for the month.
+                  {plan.code === "trial"
+                    ? "That's everything your trial includes."
+                    : "You've used all of these for the month."}
                 </span>
               ) : null}
             </li>

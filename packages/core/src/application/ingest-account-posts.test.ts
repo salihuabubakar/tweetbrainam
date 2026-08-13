@@ -43,6 +43,7 @@ function makeDeps(
     },
     countIngestedPosts: async () => saved.length,
     findAccessTokenForAccount: async () => null,
+    findUserIdForAccount: async () => "u1",
     listPostsMissingEmbedding: async () => [],
     saveEmbeddings: async () => {},
     findSimilarPosts: async () => [],
@@ -53,6 +54,22 @@ function makeDeps(
   };
 
   const deps: IngestAccountPostsDeps = {
+    usage: {
+      findSubscription: async () => ({
+        planCode: "free_beta",
+        status: "active",
+        trialEndsAt: null,
+      }),
+      startTrial: async () => {},
+      countUsage: async () => 0,
+      countUsageByMetric: async () => ({
+        draft_generated: 0,
+        plan_generated: 0,
+        post_published: 0,
+      }),
+      recordUsage: async () => {},
+    },
+    clock: { now: () => new Date("2026-08-06T12:00:00Z") },
     ingestion,
     xContent: {
       fetchRecentPosts: async (request) => {

@@ -6,16 +6,17 @@ import {
 } from "../domain/drafting";
 import { type DomainError, domainError } from "../domain/errors";
 import { type Result, err, ok } from "../lib/result";
-import type { Clock } from "../ports/clock";
 import type { DraftRepository } from "../ports/draft-repository";
+import type { IngestionRepository } from "../ports/ingestion-repository";
 import type { PlanRepository } from "../ports/plan-repository";
 import type { ScheduleRepository } from "../ports/schedule-repository";
+import { type QuotaDeps, checkUserQuota } from "./enforce-quota";
 
-export type ReviewDraftDeps = {
+export type ReviewDraftDeps = QuotaDeps & {
   drafts: DraftRepository;
   plans: PlanRepository;
   schedule: ScheduleRepository;
-  clock: Clock;
+  ingestion: IngestionRepository;
 };
 
 const IMMEDIATE_PUBLISH_GRACE_MS = 60_000;
@@ -45,6 +46,16 @@ export async function approveDraft(
   }
   if (!segmentsWithinLimit(draft.currentVersion.segments)) {
     return err(domainError("draft_not_editable", "One of your posts is over 280 characters."));
+  }
+
+  const accountForQuota = await deps.drafts.findAccountIdForDraft(draft.id);
+  const userId = accountForQuota
+    ? await deps.ingestion.findUserIdForAccount(accountForQuota)
+    : null;
+
+  if (userId) {
+    const quota = await checkUserQuota(deps, { userId, metric: "post_published" });
+    if (!quota.ok) return quota;
   }
 
   await deps.drafts.setStatus(draft.id, "approved");

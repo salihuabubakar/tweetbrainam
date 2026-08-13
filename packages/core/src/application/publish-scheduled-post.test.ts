@@ -72,9 +72,12 @@ function makeDeps(options: Options = {}) {
     },
   } as unknown as PlanRepository;
 
+  const recorded: string[] = [];
+
   const ingestion = {
     findAccessTokenForAccount: async () =>
       options.hasToken === false ? null : new TextEncoder().encode("token"),
+    findUserIdForAccount: async () => "u1",
   } as unknown as IngestionRepository;
 
   const publisher: XPublishClient = {
@@ -100,9 +103,27 @@ function makeDeps(options: Options = {}) {
       encrypt: (plain) => new TextEncoder().encode(plain),
       decrypt: (data) => new TextDecoder().decode(data),
     },
+    usage: {
+      findSubscription: async () => ({
+        planCode: "free_beta",
+        status: "active",
+        trialEndsAt: null,
+      }),
+      startTrial: async () => {},
+      countUsage: async () => 0,
+      countUsageByMetric: async () => ({
+        draft_generated: 0,
+        plan_generated: 0,
+        post_published: 0,
+      }),
+      recordUsage: async (_userId, metric) => {
+        recorded.push(metric);
+      },
+    },
+    clock: { now: () => new Date("2026-08-10T09:00:00Z") },
   };
 
-  return { deps, statuses, slotStatuses, getPublishCalls: () => publishCalls };
+  return { deps, statuses, slotStatuses, recorded, getPublishCalls: () => publishCalls };
 }
 
 describe("publishScheduledPost", () => {
@@ -115,6 +136,22 @@ describe("publishScheduledPost", () => {
     if (result.ok) expect(result.value.xPostIds).toEqual(["111", "222"]);
     expect(statuses.at(-1)?.status).toBe("published");
     expect(slotStatuses).toEqual(["published"]);
+  });
+
+  it("counts a published post against the monthly allowance", async () => {
+    const { deps, recorded } = makeDeps();
+
+    await publishScheduledPost(deps, { scheduledPostId: "sp1" });
+
+    expect(recorded).toEqual(["post_published"]);
+  });
+
+  it("does not count a post that failed to publish", async () => {
+    const { deps, recorded } = makeDeps({ failure: "rate_limited" });
+
+    await publishScheduledPost(deps, { scheduledPostId: "sp1" });
+
+    expect(recorded).toEqual([]);
   });
 
   it("is idempotent — an already published post is never sent twice", async () => {

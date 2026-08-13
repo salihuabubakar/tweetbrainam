@@ -1,12 +1,51 @@
 import { describe, expect, it } from "vitest";
 import {
   inferPostingWindows,
+  isPlanningHourInZone,
   localWallClockToUtc,
   mondayOf,
+  nextMondayInZone,
   nextMondayOf,
   resolvePostingWindows,
 } from "./planning";
 
+describe("isPlanningHourInZone", () => {
+  it("fires at Sunday 17:00 in the user's own timezone, not in UTC", () => {
+    const lagosSundayEvening = new Date("2026-08-09T16:00:00Z");
+
+    expect(isPlanningHourInZone(lagosSundayEvening, "Africa/Lagos")).toBe(true);
+    expect(isPlanningHourInZone(lagosSundayEvening, "UTC")).toBe(false);
+  });
+
+  it("does not fire at the same instant for someone in another zone", () => {
+    const instant = new Date("2026-08-09T17:00:00Z");
+
+    expect(isPlanningHourInZone(instant, "UTC")).toBe(true);
+    expect(isPlanningHourInZone(instant, "Africa/Lagos")).toBe(false);
+  });
+
+  it("ignores every other hour of the week", () => {
+    expect(isPlanningHourInZone(new Date("2026-08-09T15:00:00Z"), "UTC")).toBe(false);
+    expect(isPlanningHourInZone(new Date("2026-08-10T17:00:00Z"), "UTC")).toBe(false);
+  });
+
+  it("falls back to UTC rather than throwing on a bad timezone", () => {
+    expect(isPlanningHourInZone(new Date("2026-08-09T17:00:00Z"), "Not/AZone")).toBe(true);
+  });
+});
+
+describe("nextMondayInZone", () => {
+  it("plans the very next Monday for a user whose Sunday evening is already Monday in UTC", () => {
+    const pacificSundayEvening = new Date("2026-08-10T04:00:00Z");
+
+    expect(nextMondayInZone(pacificSundayEvening, "Pacific/Niue")).toBe("2026-08-10");
+    expect(nextMondayOf(pacificSundayEvening)).toBe("2026-08-17");
+  });
+
+  it("plans tomorrow's Monday from a normal Sunday evening", () => {
+    expect(nextMondayInZone(new Date("2026-08-09T16:00:00Z"), "Africa/Lagos")).toBe("2026-08-10");
+  });
+});
 describe("resolvePostingWindows", () => {
   it("posts morning and evening on each chosen day", () => {
     const windows = resolvePostingWindows(5, []);

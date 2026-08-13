@@ -72,7 +72,7 @@ export function createStubDeps(overrides: Partial<AppDeps> = {}): AppDeps {
       recordConsent: async () => {},
       updateOnboardingStep: async () => {},
       saveUserGoals: async () => {},
-      listActiveOnboardedUserIds: async () => [],
+      listActiveOnboardedUsers: async () => [],
       findXAccountSummary: async () => ({
         handle: "salihu",
         displayName: "Salihu",
@@ -97,6 +97,7 @@ export function createStubDeps(overrides: Partial<AppDeps> = {}): AppDeps {
       countIngestedPosts: async () => 0,
       setAnalysisState: async () => {},
       findAccessTokenForAccount: async () => null,
+      findUserIdForAccount: async () => stubUser.id,
       listPostsMissingEmbedding: async () => [],
       saveEmbeddings: async () => {},
       findSimilarPosts: async () => [],
@@ -109,6 +110,12 @@ export function createStubDeps(overrides: Partial<AppDeps> = {}): AppDeps {
       saveProfileAsActive: async () => {
         throw new Error("not used in tests");
       },
+    },
+    notifications: {
+      listSubscriptions: async () => [],
+      saveSubscription: async () => {},
+      deleteSubscription: async () => {},
+      deleteSubscriptionById: async () => {},
     },
     memory: {
       listForUser: async () => [],
@@ -155,14 +162,28 @@ export function createStubDeps(overrides: Partial<AppDeps> = {}): AppDeps {
     },
     plans: {
       findPlanByWeek: async () => null,
+      findPlanById: async () => null,
       findSlotById: async () => null,
+      findAccountIdForSlot: async () => null,
+      findAccountIdForPlan: async () => null,
+      countSlots: async () => 0,
       savePlan: async () => {
         throw new Error("not used in tests");
       },
+      addSlot: async () => {
+        throw new Error("not used in tests");
+      },
+      updateSlot: async () => null,
       updateSlotStatus: async () => {},
+      deleteSlot: async () => {},
     },
     usage: {
-      findPlanCode: async () => "free_beta" as const,
+      findSubscription: async () => ({
+        planCode: "free_beta" as const,
+        status: "active" as const,
+        trialEndsAt: null,
+      }),
+      startTrial: async () => {},
       countUsage: async () => 0,
       countUsageByMetric: async () => ({
         draft_generated: 0,

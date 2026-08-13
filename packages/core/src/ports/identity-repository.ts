@@ -13,7 +13,7 @@ export type IdentityRepository = {
   recordConsent(userId: string, at: Date): Promise<void>;
   updateOnboardingStep(userId: string, step: OnboardingStep): Promise<void>;
   saveUserGoals(userId: string, goals: UserGoals): Promise<void>;
-  listActiveOnboardedUserIds(): Promise<string[]>;
+  listActiveOnboardedUsers(): Promise<{ id: string; timezone: string }[]>;
   findXAccountSummary(userId: string): Promise<XAccountSummary | null>;
   savePreferences(
     userId: string,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Draft, DraftSegment, DraftStatus } from "../domain/drafting";
 import type { PublishStatus } from "../domain/publishing";
 import type { DraftRepository, LearningSignalType } from "../ports/draft-repository";
+import type { IngestionRepository } from "../ports/ingestion-repository";
 import type { PlanRepository } from "../ports/plan-repository";
 import type { ScheduleRepository } from "../ports/schedule-repository";
 import { type ReviewDraftDeps, approveDraft, editDraft, rejectDraft } from "./review-draft";
@@ -11,6 +12,7 @@ function makeDeps(options: {
   segments?: DraftSegment[];
   author?: "ai" | "user";
   existingSchedule?: PublishStatus;
+  publishedThisMonth?: number;
 }) {
   const statuses: DraftStatus[] = [];
   const slotStatuses: string[] = [];
@@ -106,6 +108,24 @@ function makeDeps(options: {
     drafts,
     plans,
     schedule,
+    ingestion: {
+      findUserIdForAccount: async () => "u1",
+    } as unknown as IngestionRepository,
+    usage: {
+      findSubscription: async () => ({
+        planCode: "free_beta",
+        status: "active",
+        trialEndsAt: null,
+      }),
+      startTrial: async () => {},
+      countUsage: async () => options.publishedThisMonth ?? 0,
+      countUsageByMetric: async () => ({
+        draft_generated: 0,
+        plan_generated: 0,
+        post_published: 0,
+      }),
+      recordUsage: async () => {},
+    },
     clock: { now: () => new Date("2026-08-06T12:00:00Z") },
   };
   return { deps, statuses, slotStatuses, signals, versions, scheduled, scheduleStatuses };
@@ -149,6 +169,16 @@ describe("approveDraft", () => {
     expect(scheduled[0]?.publishAt.getTime()).toBeGreaterThan(
       new Date("2026-08-06T12:00:00Z").getTime(),
     );
+  });
+
+  it("refuses to approve once the month's publishing allowance is gone", async () => {
+    const { deps, statuses } = makeDeps({ status: "needs_review", publishedThisMonth: 60 });
+
+    const result = await approveDraft(deps, { draftId: "d1" });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("quota_exceeded");
+    expect(statuses).toEqual([]);
   });
 
   it("refuses to approve content over the character limit", async () => {

@@ -17,3 +17,5 @@ export const unauthorized = (message = "Sign in required.") =>
 
 export const notFound = (message = "Resource not found.") =>
   new ApiError("not_found", message, 404);
+
+export const quotaExceeded = (message: string) => new ApiError("quota_exceeded", message, 429);

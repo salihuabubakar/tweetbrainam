@@ -18,6 +18,9 @@ export const env = parseEnv({
   X_REDIRECT_URI: z.string().url().default("http://localhost:3000/api/v1/auth/x/callback"),
   TOKEN_ENCRYPTION_KEY: z.string().default(DEV_KEY),
   TRIGGER_SECRET_KEY: z.string().optional(),
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().default("mailto:hello@tweetbrainam.com"),
   INGESTION_MAX_POSTS: z.coerce.number().int().min(1).max(3200).default(100),
 });
 

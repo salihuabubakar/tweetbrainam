@@ -5,6 +5,64 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@keyframes tb-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tb-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tb-drift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-0.5rem);
+  }
+}
+
+.tb-reveal {
+  opacity: 0;
+}
+
+.tb-reveal[data-visible="true"] {
+  animation: tb-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.tb-screen-enter {
+  animation: tb-fade-in 0.4s ease-out;
+}
+
+.tb-drift {
+  animation: tb-drift 5s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tb-reveal,
+  .tb-reveal[data-visible="true"] {
+    opacity: 1;
+    animation: none;
+  }
+
+  .tb-screen-enter,
+  .tb-drift {
+    animation: none;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

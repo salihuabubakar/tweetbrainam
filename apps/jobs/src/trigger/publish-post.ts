@@ -1,7 +1,7 @@
 import { logger, schemaTask } from "@trigger.dev/sdk";
-import { publishScheduledPost } from "@tweetbrainam/core";
+import { notifyUser, publishFailedNotification, publishScheduledPost } from "@tweetbrainam/core";
 import { z } from "zod";
-import { createPublishDeps } from "../deps";
+import { createNotifyDeps, createPublishDeps } from "../deps";
 
 export const publishPostTask = schemaTask({
   id: "publish-post",
@@ -9,7 +9,9 @@ export const publishPostTask = schemaTask({
   maxDuration: 120,
   retry: { maxAttempts: 3, factor: 2, minTimeoutInMs: 5000, maxTimeoutInMs: 60000 },
   run: async (payload) => {
-    const result = await publishScheduledPost(createPublishDeps(), {
+    const deps = createPublishDeps();
+    const post = await deps.schedule.findById(payload.scheduledPostId);
+    const result = await publishScheduledPost(deps, {
       scheduledPostId: payload.scheduledPostId,
     });
 
@@ -20,6 +22,16 @@ export const publishPostTask = schemaTask({
         retryable: result.error.retryable,
       });
       if (result.error.retryable) throw new Error(result.error.message);
+
+      const notify = createNotifyDeps();
+      const userId = post ? await deps.ingestion.findUserIdForAccount(post.xAccountId) : null;
+      if (notify && userId) {
+        await notifyUser(notify, {
+          userId,
+          notification: publishFailedNotification(result.error.message),
+        });
+      }
+
       return { published: false, reason: result.error.code };
     }
 

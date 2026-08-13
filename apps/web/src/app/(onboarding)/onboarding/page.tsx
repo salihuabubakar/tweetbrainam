@@ -7,7 +7,11 @@ import { PendingStep } from "@/components/onboarding/pending-step";
 import { PlanStep } from "@/components/onboarding/plan-step";
 import { VoiceStep } from "@/components/onboarding/voice-step";
 import { requireUser } from "@/lib/session";
-import type { OnboardingStepValue } from "@tweetbrainam/contracts";
+import {
+  type OnboardingStepValue,
+  canRevisitStep,
+  onboardingStepSchema,
+} from "@tweetbrainam/contracts";
 import { redirect } from "next/navigation";
 
 export const metadata = { title: "Get started" };
@@ -40,13 +44,37 @@ const copy: Record<OnboardingStepValue, { title: string; description: string }> 
   done: { title: "You're set", description: "" },
 };
 
-export default async function OnboardingPage() {
+function requestedStep(
+  raw: string | string[] | undefined,
+  furthest: OnboardingStepValue,
+): OnboardingStepValue | null {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (!value) return null;
+
+  const parsed = onboardingStepSchema.safeParse(value);
+  if (!parsed.success) return null;
+
+  return canRevisitStep(furthest, parsed.data) ? parsed.data : null;
+}
+
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await requireUser();
-  const step = user.onboardingStep;
-  if (step === "done") redirect("/today");
+  const furthest = user.onboardingStep;
+  if (furthest === "done") redirect("/today");
+
+  const step = requestedStep((await searchParams).step, furthest) ?? furthest;
 
   return (
-    <OnboardingShell current={step} title={copy[step].title} description={copy[step].description}>
+    <OnboardingShell
+      current={step}
+      furthest={furthest}
+      title={copy[step].title}
+      description={copy[step].description}
+    >
       {step === "consent" ? <ConsentStep /> : null}
       {step === "analyzing" ? <AnalyzingStep /> : null}
       {step === "goals" ? <GoalsStep /> : null}

@@ -25,7 +25,7 @@ function appAtStep(step: OnboardingStep) {
         steps.push(next);
       },
       saveUserGoals: async () => {},
-      listActiveOnboardedUserIds: async () => [],
+      listActiveOnboardedUsers: async () => [],
       findXAccountSummary: async () => null,
       savePreferences: async () => {},
       deleteUser: async () => {},

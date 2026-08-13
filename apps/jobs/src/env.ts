@@ -12,5 +12,8 @@ export const env = parseEnv({
   GROK_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   COHERE_API_KEY: z.string().optional(),
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().default("mailto:hello@tweetbrainam.com"),
   AI_FAILOVER_ORDER: z.string().default("groq,grok,openai"),
 });
