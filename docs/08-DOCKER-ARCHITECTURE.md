@@ -62,8 +62,8 @@ Notes:
 |---|---|---|---|
 | Core | `DATABASE_URL`, `REDIS_URL`, `APP_URL`, `API_ORIGIN` | compose defaults | host secrets |
 | X | `X_CLIENT_ID`, `X_CLIENT_SECRET`, `X_REDIRECT_URI` | dev app creds | prod app creds |
-| AI | `GROK_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `AI_FAILOVER_ORDER` | personal keys | org keys |
-| Crypto | `TOKEN_ENCRYPTION_KEY` (32B base64), `SESSION_SECRET` | generated | KMS/secret manager |
+| AI | `GROQ_API_KEY`, `GROK_API_KEY`, `OPENAI_API_KEY`, `COHERE_API_KEY`, `AI_FAILOVER_ORDER`, `GROQ_MODEL`/`GROK_MODEL`/`OPENAI_MODEL` | personal keys | org keys |
+| Crypto | `TOKEN_ENCRYPTION_KEY` (32B base64) | generated | KMS/secret manager |
 | Push | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | optional; unset disables sending | live |
 | Payment (Phase 3) | `PAYMENT_PROVIDER` (`paystack` default; `flutterwave`/`stripe`/`lemonsqueezy`), `PAYSTACK_SECRET_KEY`, `PAYSTACK_WEBHOOK_SECRET` (or the active provider's equivalent pair) | provider test keys | live keys |
 | Jobs | `TRIGGER_SECRET_KEY` | dev project | prod project |

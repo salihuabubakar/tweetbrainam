@@ -2,6 +2,8 @@ import { AppFrame } from "@/components/marketing/app-frame";
 import { Reveal } from "@/components/marketing/reveal";
 import { ApprovalScreen } from "@/components/marketing/screens";
 import { Walkthrough } from "@/components/marketing/walkthrough";
+import { Logo } from "@/components/shared/logo";
+import { SUPPORT_X_HANDLE, supportXUrl } from "@/lib/support";
 import { buttonVariants } from "@tweetbrainam/ui";
 import Link from "next/link";
 
@@ -27,7 +29,14 @@ const features = [
 export default function LandingPage() {
   return (
     <main className="flex flex-col">
-      <section className="mx-auto flex w-full max-w-5xl flex-col items-center gap-8 px-4 pt-16 pb-12 text-center sm:px-6 sm:pt-24">
+      <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-5 sm:px-6">
+        <Logo />
+        <Link href="/login" className={buttonVariants({ variant: "outline", size: "sm" })}>
+          Sign in
+        </Link>
+      </header>
+
+      <section className="mx-auto flex w-full max-w-5xl flex-col items-center gap-8 px-4 pt-10 pb-12 text-center sm:px-6 sm:pt-16">
         <Reveal>
           <h1 className="text-balance font-semibold text-3xl tracking-tight sm:text-5xl md:text-6xl">
             Stay consistent on X
@@ -117,8 +126,19 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-border border-t px-4 py-6 text-center sm:px-6">
+      <footer className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-border border-t px-4 py-6 text-center sm:px-6">
         <span className="text-muted-foreground text-xs">TweetBrainam · You approve every post</span>
+        <span aria-hidden className="text-muted-foreground text-xs">
+          ·
+        </span>
+        <a
+          href={supportXUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="text-muted-foreground text-xs underline underline-offset-4 hover:text-foreground"
+        >
+          {SUPPORT_X_HANDLE}
+        </a>
       </footer>
     </main>
   );
