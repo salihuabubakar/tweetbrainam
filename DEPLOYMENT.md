@@ -107,7 +107,16 @@ Both images build from the **repo root**, not their own directory — they need 
 
 One project, four services: **api**, **web**, **redis** (from the Redis template), and nothing for Postgres — that lives on Neon.
 
-For **api** and **web**, point each at this repo and set the Dockerfile path (`apps/api/Dockerfile`, `apps/web/Dockerfile`) with the build context at the repo root. Railway defaults the context to the service root, so this has to be changed or the build fails on a missing lockfile.
+For **api** and **web**, point each at this repo and leave **Root Directory** at the default — that keeps the build context at the repo root, which both Dockerfiles need for the lockfile and `packages/`. The Dockerfile itself is chosen with a service variable rather than a UI field:
+
+```
+RAILWAY_DOCKERFILE_PATH=apps/api/Dockerfile   # on the api service
+RAILWAY_DOCKERFILE_PATH=apps/web/Dockerfile   # on the web service
+```
+
+A `railway.json` would not work here: it is per-repo, and these two services need different values from the same repo.
+
+Set every service to the same region as the others and as Neon. Railway defaults new services to US West, and region is per service, not per project — private networking only works within a region.
 
 ### Wiring the services together
 
@@ -129,10 +138,16 @@ Private domains are plain HTTP — that's fine, the traffic never leaves Railway
 
 Railway separates these, and getting it wrong is silent:
 
-| Variable | Where | Why |
-|---|---|---|
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | **web → Build args** | Inlined into the client bundle at build time. Setting it as a service variable does nothing, and notifications ship reporting themselves unconfigured |
-| everything else | service variables | Read at boot |
+Railway passes service variables into a Docker build only when the Dockerfile declares a matching `ARG` — and in a multi-stage build the `ARG` must be repeated in every stage that needs it. Two variables on **web** are consumed at build time:
+
+| Variable | Why it must exist at build |
+|---|---|
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Inlined into the client bundle. Missing means notifications ship reporting themselves unconfigured |
+| `API_ORIGIN` | `next.config` resolves the `/api` rewrite destination during the build and writes it into the route manifest. Missing means the manifest keeps the `http://localhost:3001` fallback and every proxied request fails `ECONNREFUSED` |
+
+Both are still set as ordinary service variables; the `ARG` lines in `apps/web/Dockerfile` are what let the build see them. Everything else is read at boot.
+
+The API binds to `::` rather than `0.0.0.0`. Railway's private network is IPv6, so an IPv4-only listener is unreachable from sibling services even when the address is right.
 
 ### Neon connection strings
 

@@ -17,6 +17,14 @@ RUN pnpm install --frozen-lockfile
 # notifications card renders as "not configured on this deployment".
 ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY
 ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY
+
+# The /api rewrite destination is resolved when next.config runs during the
+# build and written into the route manifest, so API_ORIGIN has to be present
+# here. Setting it only at runtime leaves the manifest pointing at the
+# localhost fallback, and every proxied call fails with ECONNREFUSED.
+ARG API_ORIGIN
+ENV API_ORIGIN=$API_ORIGIN
+
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN pnpm --filter @tweetbrainam/web build
