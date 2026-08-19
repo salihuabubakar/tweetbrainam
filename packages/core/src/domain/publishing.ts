@@ -13,6 +13,7 @@ export const publishFailureReasons = [
   "rate_limited",
   "duplicate_content",
   "content_rejected",
+  "trial_expired",
   "unknown",
 ] as const;
 
@@ -23,6 +24,8 @@ export const publishFailureMessages: Record<PublishFailureReason, string> = {
   rate_limited: "X asked us to slow down. We'll retry shortly.",
   duplicate_content: "X rejected this as a duplicate of something you already posted.",
   content_rejected: "X refused to publish this post.",
+  trial_expired:
+    "Your trial ended before this post went out. It's still here — publish it once you're on a paid plan.",
   unknown: "Something went wrong while publishing. You can try again.",
 };
 

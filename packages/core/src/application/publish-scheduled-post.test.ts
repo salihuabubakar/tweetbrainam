@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Draft, DraftStatus } from "../domain/drafting";
 import type { PublishFailureReason, PublishStatus } from "../domain/publishing";
+import type { Subscription } from "../domain/usage";
 import { err, ok } from "../lib/result";
 import type { DraftRepository } from "../ports/draft-repository";
 import type { IngestionRepository } from "../ports/ingestion-repository";
@@ -16,6 +17,7 @@ type Options = {
   failure?: PublishFailureReason;
   claimSucceeds?: boolean;
   hasToken?: boolean;
+  subscription?: Subscription;
 };
 
 function makeDeps(options: Options = {}) {
@@ -99,16 +101,16 @@ function makeDeps(options: Options = {}) {
     plans,
     ingestion,
     publisher,
-    cipher: {
-      encrypt: (plain) => new TextEncoder().encode(plain),
-      decrypt: (data) => new TextDecoder().decode(data),
+    tokens: {
+      accessTokenFor: async () => (options.hasToken === false ? null : "access-token"),
     },
     usage: {
-      findSubscription: async () => ({
-        planCode: "free_beta",
-        status: "active",
-        trialEndsAt: null,
-      }),
+      findSubscription: async () =>
+        options.subscription ?? {
+          planCode: "free_beta",
+          status: "active",
+          trialEndsAt: null,
+        },
       startTrial: async () => {},
       countUsage: async () => 0,
       countUsageByMetric: async () => ({
@@ -126,7 +128,28 @@ function makeDeps(options: Options = {}) {
   return { deps, statuses, slotStatuses, recorded, getPublishCalls: () => publishCalls };
 }
 
+const expiredTrial: Subscription = {
+  planCode: "trial",
+  status: "trialing",
+  trialEndsAt: new Date("2026-08-01T00:00:00Z"),
+};
+
 describe("publishScheduledPost", () => {
+  it("refuses to publish once the trial has expired", async () => {
+    const { deps, statuses, recorded, getPublishCalls } = makeDeps({ subscription: expiredTrial });
+
+    const result = await publishScheduledPost(deps, { scheduledPostId: "sp1" });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("trial_expired");
+      expect(result.error.retryable).toBe(false);
+    }
+    expect(getPublishCalls()).toBe(0);
+    expect(statuses.at(-1)).toEqual({ status: "failed", reason: "trial_expired" });
+    expect(recorded).toEqual([]);
+  });
+
   it("publishes an approved draft and marks the slot published", async () => {
     const { deps, statuses, slotStatuses } = makeDeps();
 

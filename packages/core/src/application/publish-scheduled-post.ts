@@ -1,14 +1,15 @@
 import { segmentsWithinLimit } from "../domain/drafting";
 import { type DomainError, domainError } from "../domain/errors";
 import { type PublishFailureReason, isRetryable } from "../domain/publishing";
+import { canGenerate } from "../domain/usage";
 import { type Result, err, ok } from "../lib/result";
 import type { DraftRepository } from "../ports/draft-repository";
 import type { IngestionRepository } from "../ports/ingestion-repository";
 import type { PlanRepository } from "../ports/plan-repository";
 import type { ScheduleRepository } from "../ports/schedule-repository";
-import type { TokenCipher } from "../ports/security";
 import type { XPublishClient } from "../ports/x-publish-client";
-import { type QuotaDeps, recordUsage } from "./enforce-quota";
+import type { XTokenProvider } from "../ports/x-token-provider";
+import { type QuotaDeps, loadSubscription, recordUsage } from "./enforce-quota";
 
 export type PublishScheduledPostDeps = QuotaDeps & {
   schedule: ScheduleRepository;
@@ -16,7 +17,7 @@ export type PublishScheduledPostDeps = QuotaDeps & {
   plans: PlanRepository;
   ingestion: IngestionRepository;
   publisher: XPublishClient;
-  cipher: TokenCipher;
+  tokens: XTokenProvider;
 };
 
 export type PublishScheduledPostOutput = {
@@ -56,13 +57,24 @@ export async function publishScheduledPost(
     return withRetry(domainError("publish_failed", "This post is not valid for X."), false);
   }
 
+  const userId = await deps.ingestion.findUserIdForAccount(post.xAccountId);
+  if (userId) {
+    const subscription = await loadSubscription(deps, userId);
+    if (!canGenerate(subscription, deps.clock.now())) {
+      await deps.schedule.setStatus(post.id, "failed", { failureReason: "trial_expired" });
+      return withRetry(
+        domainError("trial_expired", "Your trial ended before this post could go out."),
+        false,
+      );
+    }
+  }
+
   const claimed = await deps.schedule.claimForPublishing(post.id);
   if (!claimed) {
     return ok({ xPostIds: post.xPostIds, alreadyPublished: true });
   }
 
-  const encryptedToken = await deps.ingestion.findAccessTokenForAccount(post.xAccountId);
-  const accessToken = encryptedToken ? deps.cipher.decrypt(encryptedToken) : null;
+  const accessToken = await deps.tokens.accessTokenFor(post.xAccountId);
 
   if (!accessToken) {
     await deps.schedule.setStatus(post.id, "failed", { failureReason: "connection_revoked" });
@@ -83,7 +95,6 @@ export async function publishScheduledPost(
   });
   if (post.planSlotId) await deps.plans.updateSlotStatus(post.planSlotId, "published");
 
-  const userId = await deps.ingestion.findUserIdForAccount(post.xAccountId);
   if (userId) await recordUsage(deps, { userId, metric: "post_published" });
 
   return ok({ xPostIds: result.value.xPostIds, alreadyPublished: false });

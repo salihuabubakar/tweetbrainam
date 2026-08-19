@@ -16,6 +16,7 @@ export const publishFailureReasonEnum = pgEnum("publish_failure_reason", [
   "rate_limited",
   "duplicate_content",
   "content_rejected",
+  "trial_expired",
   "unknown",
 ]);
 
