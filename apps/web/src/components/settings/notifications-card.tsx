@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type EnablePushFailure,
   type PushSupport,
   detectPushSupport,
   disablePush,
@@ -21,6 +22,15 @@ const explanations: Record<PushSupport["state"], string> = {
   ready: "We'll tell you when your week is planned and when a draft is waiting. Nothing else.",
 };
 
+const failures: Record<EnablePushFailure, string> = {
+  "permission-denied": "Your browser didn't grant permission, so nothing was turned on.",
+  "no-service-worker":
+    "The background worker that receives notifications didn't start. Reload the page and try again.",
+  "subscribe-failed":
+    "Your browser refused the subscription. This usually means the notification key on this deployment is wrong.",
+  "server-rejected": "We couldn't save this device. Try again in a moment.",
+};
+
 export function NotificationsCard() {
   const [support, setSupport] = useState<PushSupport | null>(null);
   const [isOn, setIsOn] = useState(false);
@@ -36,11 +46,11 @@ export function NotificationsCard() {
     setIsBusy(true);
     setError(null);
 
-    const granted = await enablePush(publicKey);
+    const result = await enablePush(publicKey);
     setIsBusy(false);
 
-    if (!granted) {
-      setError("Notifications weren't turned on. Your browser may have blocked the request.");
+    if (!result.ok) {
+      setError(failures[result.reason]);
       setSupport(detectPushSupport());
       return;
     }

@@ -1,6 +1,11 @@
 const SHELL_CACHE = "tweetbrainam-shell-v1";
 const OFFLINE_URL = "/offline";
 
+// Opt-in via the script URL (/sw.js?assets=1). Without it the worker still
+// handles push and the offline fallback but never caches build output, so it is
+// safe to register in dev where /_next/static changes on every edit.
+const ASSET_CACHE_ENABLED = new URL(self.location.href).searchParams.get("assets") === "1";
+
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll([OFFLINE_URL])));
   self.skipWaiting();
@@ -82,6 +87,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (!ASSET_CACHE_ENABLED) return;
   if (!isImmutableAsset(url)) return;
 
   event.respondWith(
