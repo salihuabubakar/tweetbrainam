@@ -3,7 +3,7 @@
 import { apiUrl } from "@/lib/api-url";
 import { Button } from "@tweetbrainam/ui";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const promises = [
   { we: "We read", detail: "your public posts and replies, to learn how you write." },
@@ -17,6 +17,12 @@ export function ConsentStep() {
   const [agreed, setAgreed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Before hydration the browser toggles the checkbox on its own while React
+  // still reads false, so the box looks ticked and Continue stays disabled.
+  // Staying disabled until mounted keeps the control from lying.
+  const [isReady, setIsReady] = useState(false);
+  useEffect(() => setIsReady(true), []);
 
   async function handleContinue() {
     setIsSubmitting(true);
@@ -48,8 +54,9 @@ export function ConsentStep() {
         <input
           type="checkbox"
           checked={agreed}
+          disabled={!isReady}
           onChange={(event) => setAgreed(event.target.checked)}
-          className="mt-0.5 size-4 rounded border-border accent-primary"
+          className="mt-0.5 size-4 rounded border-border accent-primary disabled:opacity-50"
         />
         <span>I understand and give TweetBrainam permission to analyze my X activity.</span>
       </label>
@@ -60,7 +67,7 @@ export function ConsentStep() {
         </p>
       ) : null}
 
-      <Button size="lg" disabled={!agreed || isSubmitting} onClick={handleContinue}>
+      <Button size="lg" disabled={!isReady || !agreed || isSubmitting} onClick={handleContinue}>
         {isSubmitting ? "Saving…" : "Continue"}
       </Button>
     </div>

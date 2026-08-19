@@ -24,6 +24,7 @@ export function AnalyzingStep() {
   const [hasStalled, setHasStalled] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [hasImported, setHasImported] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,10 +50,21 @@ export function AnalyzingStep() {
     };
   }, []);
 
+  // Retrying leaves this step mounted, so the busy flag has to be released here
+  // rather than relying on the component going away.
   async function callAndRefresh(path: string) {
     setIsBusy(true);
-    await fetch(`${apiUrl}${path}`, { method: "POST", credentials: "include" });
-    router.refresh();
+    setActionError(null);
+    try {
+      const response = await fetch(`${apiUrl}${path}`, { method: "POST", credentials: "include" });
+      if (!response.ok) {
+        setActionError("That didn't go through. Try again in a moment.");
+        return;
+      }
+      router.refresh();
+    } finally {
+      setIsBusy(false);
+    }
   }
 
   const analyzed = status?.postsAnalyzed ?? 0;
@@ -118,6 +130,12 @@ export function AnalyzingStep() {
       {!hasImported && (hasFailed || status?.state === "insufficient_posts") && (
         <PastePostsPanel postsNeeded={needed} onImported={() => setHasImported(true)} />
       )}
+
+      {actionError ? (
+        <p role="alert" className="text-destructive text-sm">
+          {actionError}
+        </p>
+      ) : null}
 
       <div className="flex gap-2">
         {!hasImported && (hasFailed || hasStalled) && status?.canRetry !== false && (
