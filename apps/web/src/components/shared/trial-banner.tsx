@@ -2,6 +2,7 @@
 
 import { useDurableState } from "@/lib/durable-state";
 import type { TrialState } from "@/lib/session";
+import { SUPPORT_X_HANDLE, supportXUrl } from "@/lib/support";
 import { cn } from "@tweetbrainam/ui";
 import Link from "next/link";
 
@@ -40,6 +41,15 @@ export function TrialBanner({ trial }: { trial: TrialState }) {
       <Link href="/settings" className="font-medium underline underline-offset-4">
         {trial.isExpired ? "See what you have" : "See your usage"}
       </Link>
+
+      <a
+        href={supportXUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="font-medium underline underline-offset-4"
+      >
+        Talk to {SUPPORT_X_HANDLE}
+      </a>
 
       {isEndingSoon ? (
         <button
