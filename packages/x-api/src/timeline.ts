@@ -8,6 +8,10 @@ import {
 import { z } from "zod";
 
 const API_BASE = "https://api.x.com/2";
+// X rejects max_results outside 5..100 with a 400, so asking for the exact
+// remainder breaks whenever fewer than five posts are left to collect.
+// Overfetching is safe: the caller slices back down to maxPosts.
+const MIN_RESULTS_PER_PAGE = 5;
 const MAX_RESULTS_PER_PAGE = 100;
 
 const tweetSchema = z.object({
@@ -63,9 +67,10 @@ export function createXContentClient(): XContentClient {
 
       while (collected.length < maxPosts) {
         const url = new URL(`${API_BASE}/users/${xUserId}/tweets`);
+        const remaining = maxPosts - collected.length;
         url.searchParams.set(
           "max_results",
-          String(Math.min(MAX_RESULTS_PER_PAGE, maxPosts - collected.length)),
+          String(Math.min(MAX_RESULTS_PER_PAGE, Math.max(MIN_RESULTS_PER_PAGE, remaining))),
         );
         url.searchParams.set("tweet.fields", "created_at,public_metrics,referenced_tweets");
         url.searchParams.set("exclude", "retweets");
