@@ -3,11 +3,11 @@ import { createOpenAICompatibleProvider } from "./openai-compatible";
 
 export const GROK_DEFAULT_MODEL = "grok-3-mini";
 
-export function createGrokProvider(apiKey: string, model = GROK_DEFAULT_MODEL): AIProvider {
+export function createGrokProvider(apiKey: string, model?: string): AIProvider {
   return createOpenAICompatibleProvider({
     name: "grok",
     baseUrl: "https://api.x.ai/v1",
     apiKey,
-    model,
+    model: model ?? GROK_DEFAULT_MODEL,
   });
 }

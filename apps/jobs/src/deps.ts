@@ -1,3 +1,4 @@
+import { tasks } from "@trigger.dev/sdk";
 import {
   type AIProviderName,
   DRAFT_POST_SYSTEM,
@@ -26,7 +27,10 @@ import type {
   IngestAccountPostsDeps,
   NotifyUserDeps,
   PublishScheduledPostDeps,
+  QuotaDeps,
+  VoiceBuildTrigger,
 } from "@tweetbrainam/core";
+import { createXTokenProvider } from "@tweetbrainam/core";
 import {
   createDatabase,
   createDraftRepository,
@@ -38,27 +42,51 @@ import {
   createScheduleRepository,
   createUsageRepository,
   createVoiceRepository,
+  createXTokenRepository,
 } from "@tweetbrainam/db";
 import { resolvePushSender } from "@tweetbrainam/notifications";
 import {
   createAesGcmTokenCipher,
   createXContentClient,
+  createXOAuthClient,
   createXPublishClient,
 } from "@tweetbrainam/x-api";
 import { env } from "./env";
 
 const database = () => createDatabase(env.DATABASE_URL);
 
+const cipher = () => createAesGcmTokenCipher(env.TOKEN_ENCRYPTION_KEY);
+
+const xTokens = () =>
+  createXTokenProvider({
+    tokens: createXTokenRepository(database()),
+    xOAuth: createXOAuthClient({
+      clientId: env.X_CLIENT_ID,
+      clientSecret: env.X_CLIENT_SECRET,
+      redirectUri: env.X_REDIRECT_URI,
+    }),
+    cipher: cipher(),
+    clock: { now: () => new Date() },
+  });
+
 const aiProvider = () => {
   const order = env.AI_FAILOVER_ORDER.split(",")
     .map((name) => name.trim())
     .filter((name): name is AIProviderName => ["groq", "grok", "openai"].includes(name));
 
-  return resolveAIProvider(order, {
-    ...(env.GROQ_API_KEY ? { groq: env.GROQ_API_KEY } : {}),
-    ...(env.GROK_API_KEY ? { grok: env.GROK_API_KEY } : {}),
-    ...(env.OPENAI_API_KEY ? { openai: env.OPENAI_API_KEY } : {}),
-  });
+  return resolveAIProvider(
+    order,
+    {
+      ...(env.GROQ_API_KEY ? { groq: env.GROQ_API_KEY } : {}),
+      ...(env.GROK_API_KEY ? { grok: env.GROK_API_KEY } : {}),
+      ...(env.OPENAI_API_KEY ? { openai: env.OPENAI_API_KEY } : {}),
+    },
+    {
+      ...(env.GROQ_MODEL ? { groq: env.GROQ_MODEL } : {}),
+      ...(env.GROK_MODEL ? { grok: env.GROK_MODEL } : {}),
+      ...(env.OPENAI_MODEL ? { openai: env.OPENAI_MODEL } : {}),
+    },
+  );
 };
 
 const embeddingProvider = () =>
@@ -71,14 +99,21 @@ export function createEmbeddingDeps(): EmbedAccountPostsDeps {
   };
 }
 
+const voiceBuildTrigger: VoiceBuildTrigger = {
+  async startVoiceProfileBuild(userId) {
+    await tasks.trigger("build-voice-profile", { userId });
+  },
+};
+
 export function createIngestionDeps(): IngestAccountPostsDeps {
   const db = database();
   return {
     ingestion: createIngestionRepository(db),
     xContent: createXContentClient(),
-    cipher: createAesGcmTokenCipher(env.TOKEN_ENCRYPTION_KEY),
+    tokens: xTokens(),
     usage: createUsageRepository(db),
     clock: { now: () => new Date() },
+    jobs: voiceBuildTrigger,
   };
 }
 
@@ -126,6 +161,13 @@ export function createIdentityDeps() {
   return createIdentityRepository(database());
 }
 
+export function createQuotaDeps(): QuotaDeps {
+  return {
+    usage: createUsageRepository(database()),
+    clock: { now: () => new Date() },
+  };
+}
+
 export function createPublishDeps(): PublishScheduledPostDeps {
   const db = database();
   return {
@@ -134,7 +176,7 @@ export function createPublishDeps(): PublishScheduledPostDeps {
     plans: createPlanRepository(db),
     ingestion: createIngestionRepository(db),
     publisher: createXPublishClient(),
-    cipher: createAesGcmTokenCipher(env.TOKEN_ENCRYPTION_KEY),
+    tokens: xTokens(),
     usage: createUsageRepository(db),
     clock: { now: () => new Date() },
   };

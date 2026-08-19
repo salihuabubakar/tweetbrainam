@@ -10,16 +10,22 @@ export type AIProviderName = "groq" | "grok" | "openai";
 
 export type AIProviderKeys = Partial<Record<AIProviderName, string>>;
 
-const factories: Record<AIProviderName, (apiKey: string) => AIProvider> = {
+export type AIProviderModels = Partial<Record<AIProviderName, string>>;
+
+const factories: Record<AIProviderName, (apiKey: string, model?: string) => AIProvider> = {
   groq: createGroqProvider,
   grok: createGrokProvider,
   openai: createOpenAIProvider,
 };
 
-export function resolveAIProvider(order: AIProviderName[], keys: AIProviderKeys): AIProvider {
+export function resolveAIProvider(
+  order: AIProviderName[],
+  keys: AIProviderKeys,
+  models: AIProviderModels = {},
+): AIProvider {
   const available = order
     .filter((name) => Boolean(keys[name]))
-    .map((name) => factories[name](keys[name] as string));
+    .map((name) => factories[name](keys[name] as string, models[name]));
 
   if (available.length === 0) {
     const configured = Object.keys(keys).filter((name) => Boolean(keys[name as AIProviderName]));
