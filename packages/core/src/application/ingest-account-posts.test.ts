@@ -30,6 +30,7 @@ function makeDeps(
   const saved: IngestablePost[] = [];
   const watermarks: string[] = [];
   const states: { state: AnalysisState; reason?: AnalysisFailureReason }[] = [];
+  const voiceBuilds: string[] = [];
   let requestedSince: string | null | undefined;
 
   const ingestion: IngestionRepository = {
@@ -77,13 +78,22 @@ function makeDeps(
         return fetchResult.ok ? ok(fetchResult.value) : err(fetchResult.error);
       },
     },
-    cipher: {
-      encrypt: (plain) => new TextEncoder().encode(plain),
-      decrypt: (data) => new TextDecoder().decode(data),
+    tokens: { accessTokenFor: async () => "access-token" },
+    jobs: {
+      startVoiceProfileBuild: async (userId) => {
+        voiceBuilds.push(userId);
+      },
     },
   };
 
-  return { deps, saved, watermarks, states, getRequestedSince: () => requestedSince };
+  return {
+    deps,
+    saved,
+    watermarks,
+    states,
+    voiceBuilds,
+    getRequestedSince: () => requestedSince,
+  };
 }
 
 const fetched = (posts: IngestablePost[]) => ({ ok: true as const, value: posts });
@@ -162,5 +172,31 @@ describe("ingestAccountPosts", () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("x_connection_revoked");
+  });
+
+  it("starts the voice profile build once posts are stored", async () => {
+    const { deps, voiceBuilds } = makeDeps(
+      fetched([makePost("400", "A long enough post for the model to learn something from.")]),
+    );
+
+    await ingestAccountPosts(deps, { userId: "u1", maxPosts: 100 });
+
+    expect(voiceBuilds).toEqual(["u1"]);
+  });
+
+  it("does not start the voice profile build when nothing usable was stored", async () => {
+    const { deps, voiceBuilds } = makeDeps(fetched([makePost("401", "too short")]));
+
+    await ingestAccountPosts(deps, { userId: "u1", maxPosts: 100 });
+
+    expect(voiceBuilds).toEqual([]);
+  });
+
+  it("does not start the voice profile build when ingestion failed", async () => {
+    const { deps, voiceBuilds } = makeDeps(failed(429));
+
+    await ingestAccountPosts(deps, { userId: "u1", maxPosts: 100 });
+
+    expect(voiceBuilds).toEqual([]);
   });
 });

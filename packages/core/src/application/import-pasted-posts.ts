@@ -4,10 +4,12 @@ import { parsePastedPosts } from "../domain/pasted-posts";
 import { PLAN_SCAN_LIMITS } from "../domain/usage";
 import { type Result, err, ok } from "../lib/result";
 import type { IngestionRepository } from "../ports/ingestion-repository";
+import type { VoiceBuildTrigger } from "../ports/job-runner";
 import { type QuotaDeps, loadSubscription } from "./enforce-quota";
 
 export type ImportPastedPostsDeps = QuotaDeps & {
   ingestion: IngestionRepository;
+  jobs: VoiceBuildTrigger;
 };
 
 export type ImportPastedPostsInput = {
@@ -47,6 +49,7 @@ export async function importPastedPosts(
 
   const stored = await deps.ingestion.saveIngestedPosts(account.id, posts);
   await deps.ingestion.setAnalysisState(account.id, "complete");
+  await deps.jobs.startVoiceProfileBuild(input.userId);
 
   return ok({ fetched: posts.length, stored, newestPostId: null });
 }

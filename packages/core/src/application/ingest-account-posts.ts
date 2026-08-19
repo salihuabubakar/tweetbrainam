@@ -7,14 +7,16 @@ import {
 import { PLAN_SCAN_LIMITS } from "../domain/usage";
 import { type Result, err, ok } from "../lib/result";
 import type { IngestionRepository } from "../ports/ingestion-repository";
-import type { TokenCipher } from "../ports/security";
+import type { VoiceBuildTrigger } from "../ports/job-runner";
 import type { FetchFailure, XContentClient } from "../ports/x-content-client";
+import type { XTokenProvider } from "../ports/x-token-provider";
 import { type QuotaDeps, loadSubscription } from "./enforce-quota";
 
 export type IngestAccountPostsDeps = QuotaDeps & {
   ingestion: IngestionRepository;
   xContent: XContentClient;
-  cipher: TokenCipher;
+  tokens: XTokenProvider;
+  jobs: VoiceBuildTrigger;
 };
 
 export type IngestAccountPostsInput = {
@@ -44,13 +46,20 @@ export async function ingestAccountPosts(
 
   if (scanBudget <= 0) {
     await deps.ingestion.setAnalysisState(account.id, "complete");
+    if (alreadyStored > 0) await deps.jobs.startVoiceProfileBuild(input.userId);
     return ok({ fetched: 0, stored: 0, newestPostId: null });
   }
 
   await deps.ingestion.setAnalysisState(account.id, "running");
 
+  const accessToken = await deps.tokens.accessTokenFor(account.id);
+  if (!accessToken) {
+    await deps.ingestion.setAnalysisState(account.id, "failed", "connection_revoked");
+    return err(domainError("x_connection_revoked", "Your X connection needs reconnecting."));
+  }
+
   const fetchResult = await deps.xContent.fetchRecentPosts({
-    accessToken: deps.cipher.decrypt(account.accessTokenEnc),
+    accessToken,
     xUserId: account.xUserId,
     maxPosts: Math.min(input.maxPosts, scanBudget),
     sincePostId: account.lastIngestedPostId,
@@ -75,6 +84,10 @@ export async function ingestAccountPosts(
   }
 
   await deps.ingestion.setAnalysisState(account.id, "complete");
+
+  if (alreadyStored + stored > 0) {
+    await deps.jobs.startVoiceProfileBuild(input.userId);
+  }
 
   return ok({ fetched: posts.length, stored, newestPostId });
 }

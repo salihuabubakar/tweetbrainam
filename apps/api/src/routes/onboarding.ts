@@ -54,7 +54,6 @@ export function createOnboardingRoutes(deps: AppDeps) {
         maxPosts: env.INGESTION_MAX_POSTS,
       });
       if (!result.ok) throw toApiError(result.error);
-      await deps.jobs.startVoiceProfileBuild(userId);
       return c.json(result.value);
     })
 

@@ -16,3 +16,5 @@ export type JobRunner = {
   schedulePublish(scheduledPostId: string, publishAt: Date): Promise<string | null>;
   cancelPublish(triggerRunId: string): Promise<void>;
 };
+
+export type VoiceBuildTrigger = Pick<JobRunner, "startVoiceProfileBuild">;
