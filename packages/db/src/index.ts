@@ -8,4 +8,5 @@ export { createPlanRepository } from "./repositories/plan";
 export { createScheduleRepository } from "./repositories/schedule";
 export { createUsageRepository } from "./repositories/usage";
 export { createVoiceRepository } from "./repositories/voice";
+export { createXTokenRepository } from "./repositories/x-token";
 export * from "./schema";
