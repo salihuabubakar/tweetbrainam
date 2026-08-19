@@ -10,6 +10,7 @@ import { ConnectionCard } from "./connection-card";
 import { DangerZone } from "./danger-zone";
 import { NotificationsCard } from "./notifications-card";
 import { PlanCard } from "./plan-card";
+import { SupportCard } from "./support-card";
 
 export function SettingsPanel() {
   const [settings, setSettings] = useState<SettingsSummaryValue | null>(null);
@@ -47,6 +48,7 @@ export function SettingsPanel() {
           {failure} Refresh to try again.
         </p>
         <AppearanceCard />
+        <SupportCard />
       </div>
     );
   }
@@ -70,7 +72,10 @@ export function SettingsPanel() {
         onSaved={load}
       />
       <NotificationsCard />
-      <PlanCard plan={settings.plan} />
+      <div data-tour="trial">
+        <PlanCard plan={settings.plan} />
+      </div>
+      <SupportCard />
       <DangerZone />
     </div>
   );

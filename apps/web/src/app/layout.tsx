@@ -1,4 +1,5 @@
 import { ServiceWorker } from "@/components/shared/service-worker";
+import { ToastProvider } from "@/components/shared/toast";
 import { themeScript } from "@/lib/theme";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
@@ -38,7 +39,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="bg-background font-sans text-foreground antialiased">
-        {children}
+        <ToastProvider>{children}</ToastProvider>
         <ServiceWorker />
       </body>
     </html>

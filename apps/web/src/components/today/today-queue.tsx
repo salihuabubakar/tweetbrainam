@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/shared/toast";
 import { apiUrl } from "@/lib/api-url";
 import { Button, cn } from "@tweetbrainam/ui";
 import { useCallback, useEffect, useState } from "react";
@@ -41,17 +42,47 @@ function formatWhen(iso: string): string {
   });
 }
 
+const actionResults: Record<string, { done: string; failed: string }> = {
+  cancel: {
+    done: "Canceled — it won't go out. The draft is still in Drafts if you want it back.",
+    failed: "We couldn't cancel that. It's still scheduled.",
+  },
+  "publish-now": {
+    done: "Publishing now — this takes a few seconds. It'll show as Published when X confirms.",
+    failed: "We couldn't start publishing. Nothing was sent to X.",
+  },
+  retry: {
+    done: "Retrying — we'll update this card when X responds.",
+    failed: "We couldn't retry that just now.",
+  },
+};
+
+const busyLabels: Record<string, string> = {
+  cancel: "Canceling…",
+  "publish-now": "Publishing…",
+  retry: "Retrying…",
+};
+
 function PostCard({ post, onAction }: { post: ScheduledPost; onAction: () => void }) {
-  const [isBusy, setIsBusy] = useState(false);
+  const toast = useToast();
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const isBusy = busyAction !== null;
 
   async function act(path: string) {
-    setIsBusy(true);
-    await fetch(`${apiUrl}/v1/schedule/${post.id}/${path}`, {
-      method: "POST",
-      credentials: "include",
-    });
-    setIsBusy(false);
-    onAction();
+    setBusyAction(path);
+    try {
+      const response = await fetch(`${apiUrl}/v1/schedule/${post.id}/${path}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const copy = actionResults[path];
+      if (copy) {
+        toast(response.ok ? { message: copy.done } : { message: copy.failed, tone: "error" });
+      }
+    } finally {
+      setBusyAction(null);
+      onAction();
+    }
   }
 
   return (
@@ -114,16 +145,16 @@ function PostCard({ post, onAction }: { post: ScheduledPost; onAction: () => voi
           {post.status === "scheduled" && (
             <>
               <Button size="sm" variant="outline" disabled={isBusy} onClick={() => act("cancel")}>
-                Cancel
+                {busyAction === "cancel" ? busyLabels.cancel : "Cancel"}
               </Button>
               <Button size="sm" disabled={isBusy} onClick={() => act("publish-now")}>
-                Publish now
+                {busyAction === "publish-now" ? busyLabels["publish-now"] : "Publish now"}
               </Button>
             </>
           )}
           {post.status === "failed" && (
             <Button size="sm" disabled={isBusy} onClick={() => act("retry")}>
-              Try again
+              {busyAction === "retry" ? busyLabels.retry : "Try again"}
             </Button>
           )}
         </div>

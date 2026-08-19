@@ -1,6 +1,7 @@
 "use client";
 
 import { type Tab, TabBar } from "@/components/shared/tab-bar";
+import { useToast } from "@/components/shared/toast";
 import { readApiError } from "@/lib/api-error";
 import { apiUrl } from "@/lib/api-url";
 import { useDurableState } from "@/lib/durable-state";
@@ -56,6 +57,7 @@ export function WeekPlan({
   onReady?: (plan: ContentPlanValue) => void;
   showWeekSwitcher?: boolean;
 }) {
+  const toast = useToast();
   const { value: week, setValue: setWeek } = useDurableState<Week>("plan:week", "this");
   const [plan, setPlan] = useState<ContentPlanValue | null>(null);
   const [weekStart, setWeekStart] = useState("");
@@ -100,7 +102,12 @@ export function WeekPlan({
     if (!response.ok) {
       setError(await readApiError(response, "We couldn't start planning your week."));
       setIsGenerating(false);
+      return;
     }
+
+    toast({
+      message: "Planning your week — the slots will fill in here as they're decided.",
+    });
   }
 
   const switcher = showWeekSwitcher ? (

@@ -11,7 +11,9 @@ export default function DraftsPage() {
           Written in your voice. Nothing goes out until you approve it.
         </p>
       </div>
-      <DraftsList />
+      <div data-tour="drafts">
+        <DraftsList />
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { NavLink } from "@/components/shared/nav-link";
 import { SignOutButton } from "@/components/shared/sign-out-button";
+import { Tour } from "@/components/shared/tour";
 import { TrialBanner } from "@/components/shared/trial-banner";
 import { requireOnboardedSession } from "@/lib/session";
 import type { ReactNode } from "react";
@@ -58,6 +59,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           </NavLink>
         ))}
       </nav>
+
+      <Tour />
     </div>
   );
 }

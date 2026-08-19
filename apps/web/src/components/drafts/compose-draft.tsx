@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/shared/toast";
 import { readApiError } from "@/lib/api-error";
 import { apiUrl } from "@/lib/api-url";
 import { useDurableState } from "@/lib/durable-state";
@@ -14,6 +15,7 @@ const emptyDraft = {
 };
 
 export function ComposeDraft({ onQueued }: { onQueued: () => void }) {
+  const toast = useToast();
   const { value: form, setValue: setForm, clear } = useDurableState("drafts.compose", emptyDraft);
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,6 +43,10 @@ export function ComposeDraft({ onQueued }: { onQueued: () => void }) {
       setError(await readApiError(response, "We couldn't start that draft. Try again."));
       return;
     }
+
+    toast({
+      message: "Writing it now — it'll appear under Needs review in a few seconds.",
+    });
 
     clear();
     setIsOpen(false);

@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/shared/toast";
 import { apiUrl } from "@/lib/api-url";
 import { useDurableState } from "@/lib/durable-state";
 import type { ContentPlanValue, DraftValue } from "@tweetbrainam/contracts";
@@ -11,9 +12,17 @@ const MAX_SEGMENT_LENGTH = 280;
 
 const NEEDS_ATTENTION_STATUSES = ["empty", "drafting", "ready"];
 
+const formatSlotTime = (targetAt: string | Date): string =>
+  new Intl.DateTimeFormat(undefined, {
+    weekday: "long",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(targetAt));
+
 type ReviewState = "idle" | "generating" | "editing" | "saving";
 
 export function DraftReviewer({ onApproved }: { onApproved?: () => void }) {
+  const toast = useToast();
   const [slot, setSlot] = useState<ContentPlanValue["slots"][number] | null>(null);
   const [draft, setDraft] = useState<DraftValue | null>(null);
   const [state, setState] = useState<ReviewState>("idle");
@@ -127,9 +136,17 @@ export function DraftReviewer({ onApproved }: { onApproved?: () => void }) {
     });
     if (!response.ok) {
       setError("We couldn't approve that draft.");
+      toast({ message: "We couldn't approve that draft. Nothing was scheduled.", tone: "error" });
       setState("idle");
       return;
     }
+
+    toast({
+      message: slot
+        ? `Approved — going out ${formatSlotTime(slot.targetAt)}.`
+        : "Approved and scheduled.",
+      action: { label: "View in Today", href: "/today" },
+    });
 
     clearPendingEdit();
     clearGuidance();

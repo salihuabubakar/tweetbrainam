@@ -11,7 +11,9 @@ export default function PlanPage() {
           What you're posting this week, and why each one earns its slot.
         </p>
       </div>
-      <WeekPlan showWeekSwitcher />
+      <div data-tour="plan">
+        <WeekPlan showWeekSwitcher />
+      </div>
     </div>
   );
 }

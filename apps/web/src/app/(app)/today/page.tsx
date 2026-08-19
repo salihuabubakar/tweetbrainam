@@ -11,7 +11,9 @@ export default function TodayPage() {
           What's going out, what went out, and anything that needs you.
         </p>
       </div>
-      <TodayQueue />
+      <div data-tour="today">
+        <TodayQueue />
+      </div>
     </div>
   );
 }

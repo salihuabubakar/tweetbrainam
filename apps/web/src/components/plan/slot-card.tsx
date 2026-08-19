@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/shared/toast";
 import { readApiError } from "@/lib/api-error";
 import { apiUrl } from "@/lib/api-url";
 import type { PlanSlotValue, PostFormatValue } from "@tweetbrainam/contracts";
@@ -25,6 +26,7 @@ function timeOfDayLabel(date: Date): string {
 }
 
 export function SlotCard({ slot, onChanged }: { slot: PlanSlotValue; onChanged: () => void }) {
+  const toast = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +75,13 @@ export function SlotCard({ slot, onChanged }: { slot: PlanSlotValue; onChanged: 
       headers: { "content-type": "application/json" },
       body: "{}",
     });
-    if (ok) onChanged();
+    if (!ok) return;
+
+    toast({
+      message: "Writing it now — it takes a few seconds. It'll be waiting for you in Drafts.",
+      action: { label: "Go to Drafts", href: "/drafts" },
+    });
+    onChanged();
   }
 
   if (isEditing) {

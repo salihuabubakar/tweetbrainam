@@ -11,7 +11,9 @@ export default function VoicePage() {
           What we learned about how you write, and everything you can correct.
         </p>
       </div>
-      <VoicePanel />
+      <div data-tour="voice">
+        <VoicePanel />
+      </div>
     </div>
   );
 }

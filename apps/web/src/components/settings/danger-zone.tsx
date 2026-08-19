@@ -1,5 +1,6 @@
 "use client";
 
+import { Modal } from "@/components/shared/modal";
 import { apiUrl } from "@/lib/api-url";
 import { clearAllDurableState } from "@/lib/durable-state";
 import { Button } from "@tweetbrainam/ui";
@@ -19,6 +20,13 @@ export function DangerZone() {
   const [typed, setTyped] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function close() {
+    if (isDeleting) return;
+    setIsOpen(false);
+    setTyped("");
+    setError(null);
+  }
 
   async function handleDelete() {
     setIsDeleting(true);
@@ -57,51 +65,46 @@ export function DangerZone() {
         ))}
       </ul>
 
-      {isOpen ? (
-        <div className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1.5 text-sm" htmlFor="delete-confirmation">
-            Type <span className="font-mono font-semibold">{CONFIRMATION}</span> to confirm.
-            <input
-              id="delete-confirmation"
-              value={typed}
-              autoComplete="off"
-              onChange={(event) => setTyped(event.target.value)}
-              className="h-9 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-          </label>
+      <Button variant="outline" className="self-start" onClick={() => setIsOpen(true)}>
+        Delete my account
+      </Button>
 
-          {error ? (
-            <p role="alert" className="text-destructive text-sm">
-              {error}
-            </p>
-          ) : null}
+      <Modal
+        isOpen={isOpen}
+        onClose={close}
+        title="Delete your account?"
+        description="This erases everything listed above and cannot be undone. Posts already published on X stay on X."
+      >
+        <label className="flex flex-col gap-1.5 text-sm" htmlFor="delete-confirmation">
+          Type <span className="font-mono font-semibold">{CONFIRMATION}</span> to confirm.
+          <input
+            id="delete-confirmation"
+            value={typed}
+            autoComplete="off"
+            onChange={(event) => setTyped(event.target.value)}
+            className="h-9 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </label>
 
-          <div className="flex gap-2">
-            <Button
-              variant="destructive"
-              disabled={typed !== CONFIRMATION || isDeleting}
-              onClick={handleDelete}
-            >
-              {isDeleting ? "Deleting…" : "Delete everything"}
-            </Button>
-            <Button
-              variant="ghost"
-              disabled={isDeleting}
-              onClick={() => {
-                setIsOpen(false);
-                setTyped("");
-                setError(null);
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
+        {error ? (
+          <p role="alert" className="text-destructive text-sm">
+            {error}
+          </p>
+        ) : null}
+
+        <div className="flex gap-2">
+          <Button
+            variant="destructive"
+            disabled={typed !== CONFIRMATION || isDeleting}
+            onClick={handleDelete}
+          >
+            {isDeleting ? "Deleting…" : "Delete everything"}
+          </Button>
+          <Button variant="ghost" disabled={isDeleting} onClick={close}>
+            Cancel
+          </Button>
         </div>
-      ) : (
-        <Button variant="outline" className="self-start" onClick={() => setIsOpen(true)}>
-          Delete my account
-        </Button>
-      )}
+      </Modal>
     </section>
   );
 }
