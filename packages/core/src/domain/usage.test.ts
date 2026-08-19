@@ -11,6 +11,7 @@ import {
   quotaPeriod,
   trialDaysRemaining,
   trialEndsAtFrom,
+  trialNoticeDue,
 } from "./usage";
 
 const startedAt = new Date("2026-08-01T09:00:00Z");
@@ -116,6 +117,29 @@ describe("canGenerate", () => {
   it("allows an active paid subscription", () => {
     const paid = trial({ planCode: "pro", status: "active" });
     expect(canGenerate(paid, new Date("2030-01-01T00:00:00Z"))).toBe(true);
+  });
+});
+
+describe("trialNoticeDue", () => {
+  it("warns exactly once in the day that starts three days out", () => {
+    expect(trialNoticeDue(trial(), new Date("2026-08-05T09:00:00Z"))).toBe("ending_soon");
+    expect(trialNoticeDue(trial(), new Date("2026-08-05T23:00:00Z"))).toBe("ending_soon");
+    expect(trialNoticeDue(trial(), new Date("2026-08-06T09:00:00Z"))).toBeNull();
+  });
+
+  it("stays quiet before the warning window opens", () => {
+    expect(trialNoticeDue(trial(), new Date("2026-08-04T09:00:00Z"))).toBeNull();
+  });
+
+  it("reports expiry only for the first day after it ends", () => {
+    expect(trialNoticeDue(trial(), new Date("2026-08-08T09:00:00Z"))).toBe("expired");
+    expect(trialNoticeDue(trial(), new Date("2026-08-09T08:00:00Z"))).toBe("expired");
+    expect(trialNoticeDue(trial(), new Date("2026-08-09T09:00:00Z"))).toBeNull();
+  });
+
+  it("ignores subscriptions that are not trials", () => {
+    const paid = trial({ planCode: "pro", status: "active" });
+    expect(trialNoticeDue(paid, new Date("2026-08-05T09:00:00Z"))).toBeNull();
   });
 });
 

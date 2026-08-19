@@ -52,6 +52,7 @@ export {
   canRemoveSlot,
   canSkipSlot,
   DEFAULT_POSTING_HOURS,
+  isLocalHour,
   isPlanningHourInZone,
   localWallClockToUtc,
   MAX_SLOTS_PER_PLAN,
@@ -138,7 +139,10 @@ export {
   quotaPeriod,
   subscriptionStatuses,
   TRIAL_DAYS,
+  TRIAL_REMINDER_DAYS,
+  type TrialNotice,
   trialDaysRemaining,
+  trialNoticeDue,
   trialEndsAtFrom,
   usageMetrics,
   type PlanCode,
@@ -221,6 +225,8 @@ export {
   draftReadyNotification,
   notificationKinds,
   publishFailedNotification,
+  trialEndingNotification,
+  trialExpiredNotification,
   weekPlannedNotification,
   type NewPushSubscription,
   type Notification,
@@ -264,7 +270,13 @@ export {
   type IngestAccountPostsDeps,
   type IngestAccountPostsInput,
 } from "./application/ingest-account-posts";
-export type { JobRunner } from "./ports/job-runner";
+export type { JobRunner, VoiceBuildTrigger } from "./ports/job-runner";
+export type { XTokenProvider, XTokenRepository } from "./ports/x-token-provider";
+export {
+  createXTokenProvider,
+  resolveXAccessToken,
+  type ResolveXAccessTokenDeps,
+} from "./application/resolve-x-access-token";
 export {
   generationPurposes,
   type AIFailure,

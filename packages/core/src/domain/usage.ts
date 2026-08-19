@@ -85,6 +85,31 @@ export function trialDaysRemaining(subscription: Subscription, now: Date): numbe
   return Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
 }
 
+export const TRIAL_REMINDER_DAYS = 3;
+
+const HOURS_IN_DAY = 24;
+const MS_PER_HOUR = 60 * 60 * 1000;
+
+export type TrialNotice = "ending_soon" | "expired";
+
+// Decided from a single instant so the caller stays stateless. The sweep that
+// uses this runs once per user per day, and each branch below is true for a
+// 24-hour window, so a user matches each notice exactly once.
+export function trialNoticeDue(subscription: Subscription, now: Date): TrialNotice | null {
+  if (subscription.planCode !== "trial" || !subscription.trialEndsAt) return null;
+
+  const hoursUntilEnd = (subscription.trialEndsAt.getTime() - now.getTime()) / MS_PER_HOUR;
+
+  if (hoursUntilEnd <= 0) {
+    return hoursUntilEnd > -HOURS_IN_DAY ? "expired" : null;
+  }
+
+  const reminderFrom = (TRIAL_REMINDER_DAYS - 1) * HOURS_IN_DAY;
+  const reminderTo = TRIAL_REMINDER_DAYS * HOURS_IN_DAY;
+
+  return hoursUntilEnd > reminderFrom && hoursUntilEnd <= reminderTo ? "ending_soon" : null;
+}
+
 export const GRANDFATHERED_SUBSCRIPTION: Subscription = {
   planCode: "free_beta",
   status: "active",

@@ -225,6 +225,10 @@ export function isPlanningHourInZone(instant: Date, timeZone: string): boolean {
   return parts.weekday === PLANNING_WEEKDAY && parts.hour === PLANNING_HOUR;
 }
 
+export function isLocalHour(instant: Date, timeZone: string, hour: number): boolean {
+  return safeZonedParts(instant, timeZone).hour === hour;
+}
+
 export function nextMondayInZone(instant: Date, timeZone: string): string {
   const parts = safeZonedParts(instant, timeZone);
   return nextMondayOf(new Date(`${parts.date}T00:00:00Z`));

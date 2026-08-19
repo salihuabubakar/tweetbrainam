@@ -1,7 +1,7 @@
 import { logger, schemaTask } from "@trigger.dev/sdk";
-import { generateDraft } from "@tweetbrainam/core";
+import { draftReadyNotification, generateDraft, notifyUser } from "@tweetbrainam/core";
 import { z } from "zod";
-import { createDraftDeps } from "../deps";
+import { createDraftDeps, createNotifyDeps } from "../deps";
 
 export const generateDraftTask = schemaTask({
   id: "generate-draft",
@@ -19,7 +19,8 @@ export const generateDraftTask = schemaTask({
   }),
   maxDuration: 300,
   run: async (payload) => {
-    const result = await generateDraft(createDraftDeps(), {
+    const draftDeps = createDraftDeps();
+    const result = await generateDraft(draftDeps, {
       userId: payload.userId,
       ...(payload.planSlotId ? { planSlotId: payload.planSlotId } : {}),
       ...(payload.brief ? { brief: payload.brief } : {}),
@@ -40,6 +41,18 @@ export const generateDraftTask = schemaTask({
       segments: result.value.draft.currentVersion?.segments.length ?? 0,
       provider: result.value.usage.provider,
     });
+
+    const notify = createNotifyDeps();
+    if (notify) {
+      const slot = payload.planSlotId
+        ? await draftDeps.plans.findSlotById(payload.planSlotId)
+        : null;
+
+      await notifyUser(notify, {
+        userId: payload.userId,
+        notification: draftReadyNotification(slot?.topic ?? payload.brief?.topic ?? null),
+      });
+    }
 
     return { draftId: result.value.draft.id };
   },

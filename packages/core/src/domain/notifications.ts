@@ -1,4 +1,10 @@
-export const notificationKinds = ["week_planned", "draft_ready", "publish_failed"] as const;
+export const notificationKinds = [
+  "week_planned",
+  "draft_ready",
+  "publish_failed",
+  "trial_ending",
+  "trial_expired",
+] as const;
 
 export type NotificationKind = (typeof notificationKinds)[number];
 
@@ -50,5 +56,23 @@ export function publishFailedNotification(reason: string): Notification {
     title: "A post didn't go out",
     body: reason,
     url: "/today",
+  };
+}
+
+export function trialEndingNotification(daysRemaining: number): Notification {
+  return {
+    kind: "trial_ending",
+    title: daysRemaining === 1 ? "Last day of your trial" : `${daysRemaining} days left`,
+    body: "Your drafts, plan and voice profile stay readable after it ends. New posts pause.",
+    url: "/settings",
+  };
+}
+
+export function trialExpiredNotification(): Notification {
+  return {
+    kind: "trial_expired",
+    title: "Your trial has ended",
+    body: "Everything you made is still here. Drafting and publishing are paused for now.",
+    url: "/settings",
   };
 }
