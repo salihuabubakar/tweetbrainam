@@ -4,7 +4,7 @@
 |---|---|---|
 | `apps/web` | Railway service | `apps/web/Dockerfile` |
 | `apps/api` | Railway service | `apps/api/Dockerfile` |
-| `apps/jobs` | **Trigger.dev cloud** | `pnpm --filter @tweetbrainam/jobs deploy` |
+| `apps/jobs` | **Trigger.dev cloud** | `pnpm --filter @tweetbrainam/jobs run deploy` |
 | Postgres + pgvector | **Neon** | managed |
 | Redis | Railway template | managed |
 
@@ -92,7 +92,7 @@ The jobs worker holds only one AI key today, so `AI_FAILOVER_ORDER` currently ha
 DATABASE_URL="<production url>" pnpm --filter @tweetbrainam/db db:migrate
 
 # 2. Background tasks
-pnpm --filter @tweetbrainam/jobs deploy
+pnpm --filter @tweetbrainam/jobs run deploy
 
 # 3. Services
 docker build -f apps/api/Dockerfile -t tweetbrainam-api .
@@ -166,7 +166,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 3. Deploy **api** with its variables, no public domain
 4. Deploy **web** with the VAPID build arg and a public domain
 5. Set `X_REDIRECT_URI` in the X developer portal *and* on the api service to `https://<web-domain>/api/v1/auth/x/callback`
-6. `pnpm --filter @tweetbrainam/jobs deploy`, then set the jobs variables in the Trigger.dev dashboard
+6. `pnpm --filter @tweetbrainam/jobs run deploy`, then set the jobs variables in the Trigger.dev dashboard
 
 ## After deploying
 
