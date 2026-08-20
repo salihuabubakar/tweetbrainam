@@ -7,6 +7,7 @@ export type User = {
   timezone: string;
   onboardingStep: OnboardingStep;
   preferences: UserPreferences | null;
+  hasSeenTour: boolean;
 };
 
 export type XProfile = {

@@ -10,6 +10,7 @@ const toDomainUser = (row: UserRow): User => ({
   timezone: row.timezone,
   onboardingStep: row.onboardingStep,
   preferences: row.preferences ?? null,
+  hasSeenTour: row.tourCompletedAt !== null,
 });
 
 const toBuffers = (tokens: EncryptedTokenSet) => ({
@@ -77,6 +78,10 @@ export function createIdentityRepository(db: Database): IdentityRepository {
 
     async recordConsent(userId, at) {
       await db.update(users).set({ consentedAt: at }).where(eq(users.id, userId));
+    },
+
+    async recordTourCompleted(userId, at) {
+      await db.update(users).set({ tourCompletedAt: at }).where(eq(users.id, userId));
     },
 
     async updateOnboardingStep(userId, step) {

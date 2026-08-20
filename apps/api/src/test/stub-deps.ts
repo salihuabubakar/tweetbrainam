@@ -8,6 +8,7 @@ export const stubUser: User = {
   timezone: "UTC",
   onboardingStep: "consent",
   preferences: null,
+  hasSeenTour: false,
 };
 
 export function createStubDeps(overrides: Partial<AppDeps> = {}): AppDeps {
@@ -70,6 +71,7 @@ export function createStubDeps(overrides: Partial<AppDeps> = {}): AppDeps {
       createUserWithXAccount: async () => stubUser,
       updateXAccountTokens: async () => {},
       recordConsent: async () => {},
+      recordTourCompleted: async () => {},
       updateOnboardingStep: async () => {},
       saveUserGoals: async () => {},
       listActiveOnboardedUsers: async () => [],

@@ -11,6 +11,7 @@ function appAtStep(step: OnboardingStep) {
     timezone: "UTC",
     onboardingStep: step,
     preferences: null,
+    hasSeenTour: false,
   };
   const steps: OnboardingStep[] = [];
 
@@ -21,6 +22,7 @@ function appAtStep(step: OnboardingStep) {
       createUserWithXAccount: async () => user,
       updateXAccountTokens: async () => {},
       recordConsent: async () => {},
+      recordTourCompleted: async () => {},
       updateOnboardingStep: async (_id, next) => {
         steps.push(next);
       },

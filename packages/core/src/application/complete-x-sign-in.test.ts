@@ -17,6 +17,7 @@ const existingUser: User = {
   timezone: "UTC",
   onboardingStep: "done",
   preferences: null,
+  hasSeenTour: false,
 };
 
 function makeDeps(overrides: { existing: User | null }) {
@@ -38,6 +39,7 @@ function makeDeps(overrides: { existing: User | null }) {
       calls.tokensUpdated += 1;
     },
     recordConsent: async () => {},
+    recordTourCompleted: async () => {},
     updateOnboardingStep: async () => {},
     saveUserGoals: async () => {},
     listActiveOnboardedUsers: async () => [],

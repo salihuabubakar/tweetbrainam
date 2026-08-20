@@ -19,6 +19,7 @@ function makeIdentity(step: OnboardingStep) {
     timezone: "UTC",
     onboardingStep: step,
     preferences: null,
+    hasSeenTour: false,
   };
 
   const identity: IdentityRepository = {
@@ -26,6 +27,7 @@ function makeIdentity(step: OnboardingStep) {
     findUserByXUserId: async () => null,
     createUserWithXAccount: async () => user,
     updateXAccountTokens: async () => {},
+    recordTourCompleted: async () => {},
     recordConsent: async (_userId, at) => {
       calls.consentAt = at;
     },

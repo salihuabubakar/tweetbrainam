@@ -60,7 +60,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         ))}
       </nav>
 
-      <Tour />
+      <Tour hasSeenTour={user.hasSeenTour} />
     </div>
   );
 }

@@ -11,6 +11,8 @@ export type IdentityRepository = {
   }): Promise<User>;
   updateXAccountTokens(xUserId: string, tokens: EncryptedTokenSet): Promise<void>;
   recordConsent(userId: string, at: Date): Promise<void>;
+  // null clears it, which is how "replay the tour" works.
+  recordTourCompleted(userId: string, at: Date | null): Promise<void>;
   updateOnboardingStep(userId: string, step: OnboardingStep): Promise<void>;
   saveUserGoals(userId: string, goals: UserGoals): Promise<void>;
   listActiveOnboardedUsers(): Promise<{ id: string; timezone: string }[]>;

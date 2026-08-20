@@ -27,6 +27,7 @@ function makeIdentity() {
     name: "S",
     timezone: "Africa/Lagos",
     onboardingStep: "done",
+    hasSeenTour: false,
     preferences: { goal: "authority", postsPerWeek: 3, postingWindows: windows },
   };
 

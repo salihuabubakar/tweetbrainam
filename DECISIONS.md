@@ -56,6 +56,8 @@ Append-only. Statuses: **accepted** · **superseded by Dxx** · **deprecated**. 
 
 | D37 | 2026-08-18 | X access tokens are refreshed silently behind an `XTokenProvider` port; reconnect is reserved for a genuinely dead refresh token | accepted | X access tokens last two hours and nothing refreshed them, so every call more than two hours after sign-in returned 401 and was reported as `connection_revoked`. Scheduled publishing runs hours or days after approval, so in practice no scheduled post could ever have gone out — the Phase 1 exit criterion was unreachable for this reason. Every piece already existed (`offline.access` scope, stored `refresh_token_enc`, `token_expires_at`, a working `refreshTokens`); only the call was missing. Refresh happens a minute before expiry so a token cannot die mid-request, and because X rotates the refresh token on use, a failed refresh re-reads the row before giving up — otherwise two workers refreshing at once would disconnect an account that is perfectly healthy |
 
+| D38 | 2026-08-19 | Tour completion is stored on the user record (`tour_completed_at`), not in durable local state | accepted | Sign-out calls `clearAllDurableState()`, which wiped the completion flag and replayed the whole tour on every sign-in. Keeping it local would also have meant the same person is re-toured on a second device, while a different person sharing a browser never sees it — both wrong for a product with accounts. The in-progress step index stays local, since an abandoned tour position is not worth a round trip |
+
 ## Deferred decisions (revisit when triggered)
 
 | Topic | Default until then | Trigger to revisit |

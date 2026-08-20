@@ -1,5 +1,6 @@
 "use client";
 
+import { apiUrl } from "@/lib/api-url";
 import { useDurableState } from "@/lib/durable-state";
 import { TOUR_STEPS } from "@/lib/tour";
 import { Button } from "@tweetbrainam/ui";
@@ -20,7 +21,9 @@ const toBox = (rect: DOMRect): Box => ({
   height: rect.height,
 });
 
-export function Tour() {
+// Completion lives on the user record, not in local storage: signing out clears
+// durable state, which used to replay the whole tour on every sign-in.
+export function Tour({ hasSeenTour }: { hasSeenTour: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const {
@@ -28,7 +31,6 @@ export function Tour() {
     setValue: setStep,
     isRestored,
   } = useDurableState<number | null>("tour.step", null);
-  const { value: isDone, setValue: setIsDone } = useDurableState("tour.done", false);
   const [box, setBox] = useState<Box | null>(null);
   const titleId = useId();
 
@@ -36,18 +38,20 @@ export function Tour() {
   const isLast = step !== null && step === TOUR_STEPS.length - 1;
 
   const finish = useCallback(() => {
-    setIsDone(true);
     setStep(null);
     setBox(null);
-  }, [setIsDone, setStep]);
+    void fetch(`${apiUrl}/v1/me/tour`, { method: "POST", credentials: "include" }).then(() =>
+      router.refresh(),
+    );
+  }, [setStep, router]);
 
   // Starts itself the first time someone lands on Today, which can only happen
   // once onboarding is finished.
   useEffect(() => {
-    if (!isRestored || isDone || step !== null) return;
+    if (!isRestored || hasSeenTour || step !== null) return;
     if (pathname !== "/today") return;
     setStep(0);
-  }, [isRestored, isDone, step, pathname, setStep]);
+  }, [isRestored, hasSeenTour, step, pathname, setStep]);
 
   useEffect(() => {
     if (!current || pathname === current.route) return;

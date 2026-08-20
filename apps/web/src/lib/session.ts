@@ -8,6 +8,7 @@ export type CurrentUser = {
   email: string | null;
   timezone: string;
   onboardingStep: OnboardingStepValue;
+  hasSeenTour: boolean;
 };
 
 export type TrialState = {

@@ -6,21 +6,34 @@ import { requireUserId } from "../middleware/session";
 import type { AppEnv } from "../types";
 
 export function createMeRoutes(deps: AppDeps) {
-  return new Hono<AppEnv>().get("/v1/me", async (c) => {
-    const userId = requireUserId(c.get("userId"));
-    const user = await deps.identity.findUserById(userId);
-    if (!user) throw notFound("Your account no longer exists.");
+  return new Hono<AppEnv>()
+    .get("/v1/me", async (c) => {
+      const userId = requireUserId(c.get("userId"));
+      const user = await deps.identity.findUserById(userId);
+      if (!user) throw notFound("Your account no longer exists.");
 
-    const now = deps.clock.now();
-    const subscription = await loadSubscription(deps, userId);
+      const now = deps.clock.now();
+      const subscription = await loadSubscription(deps, userId);
 
-    return c.json({
-      user,
-      trial: {
-        planCode: subscription.planCode,
-        isExpired: isTrialExpired(subscription, now),
-        daysRemaining: trialDaysRemaining(subscription, now),
-      },
+      return c.json({
+        user,
+        trial: {
+          planCode: subscription.planCode,
+          isExpired: isTrialExpired(subscription, now),
+          daysRemaining: trialDaysRemaining(subscription, now),
+        },
+      });
+    })
+
+    .post("/v1/me/tour", async (c) => {
+      const userId = requireUserId(c.get("userId"));
+      await deps.identity.recordTourCompleted(userId, deps.clock.now());
+      return c.json({ ok: true });
+    })
+
+    .delete("/v1/me/tour", async (c) => {
+      const userId = requireUserId(c.get("userId"));
+      await deps.identity.recordTourCompleted(userId, null);
+      return c.json({ ok: true });
     });
-  });
 }
