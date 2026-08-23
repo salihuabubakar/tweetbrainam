@@ -1,7 +1,7 @@
 import { logger, schedules, tasks } from "@trigger.dev/sdk";
 import {
   generateWeeklyPlan,
-  isPlanningHourInZone,
+  isPlanningWindowInZone,
   nextMondayInZone,
   notifyUser,
   weekPlannedNotification,
@@ -15,11 +15,18 @@ export const weeklyPlanningSchedule = schedules.task({
   run: async (payload) => {
     const identity = createIdentityDeps();
     const users = await identity.listActiveOnboardedUsers();
-    const due = users.filter((user) => isPlanningHourInZone(payload.timestamp, user.timezone));
+    const due = users.filter((user) => isPlanningWindowInZone(payload.timestamp, user.timezone));
+
+    // Logged on every pass, including empty ones: a run that matched nobody used
+    // to be indistinguishable from a run where the query returned nothing or the
+    // timezones were misread, which made a missed week impossible to diagnose.
+    logger.info("weekly planning sweep", {
+      candidates: users.length,
+      due: due.length,
+      timezones: users.map((user) => user.timezone),
+    });
 
     if (due.length === 0) return { planned: 0, skipped: 0, due: 0 };
-
-    logger.info("weekly planning starting", { due: due.length, of: users.length });
 
     let planned = 0;
     let skipped = 0;
@@ -30,7 +37,21 @@ export const weeklyPlanningSchedule = schedules.task({
 
       if (!result.ok) {
         skipped += 1;
-        logger.warn("weekly plan skipped", { userId: user.id, code: result.error.code });
+        // Not fatal: the window covers the rest of this user's local Sunday, so
+        // the next hourly pass tries again.
+        logger.warn("weekly plan skipped", {
+          userId: user.id,
+          weekStart,
+          code: result.error.code,
+          message: result.error.message,
+        });
+        continue;
+      }
+
+      // usage is null when an existing plan was returned, which is how a repeat
+      // pass in the same window distinguishes itself from real work.
+      if (result.value.usage === null) {
+        logger.info("weekly plan already existed", { userId: user.id, weekStart });
         continue;
       }
 

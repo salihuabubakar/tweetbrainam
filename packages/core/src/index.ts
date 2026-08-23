@@ -54,6 +54,7 @@ export {
   DEFAULT_POSTING_HOURS,
   isLocalHour,
   isPlanningHourInZone,
+  isPlanningWindowInZone,
   localWallClockToUtc,
   MAX_SLOTS_PER_PLAN,
   mondayOf,

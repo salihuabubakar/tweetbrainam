@@ -58,6 +58,8 @@ Append-only. Statuses: **accepted** · **superseded by Dxx** · **deprecated**. 
 
 | D38 | 2026-08-19 | Tour completion is stored on the user record (`tour_completed_at`), not in durable local state | accepted | Sign-out calls `clearAllDurableState()`, which wiped the completion flag and replayed the whole tour on every sign-in. Keeping it local would also have meant the same person is re-toured on a second device, while a different person sharing a browser never sees it — both wrong for a product with accounts. The in-progress step index stays local, since an abandoned tour position is not worth a round trip |
 
+| D39 | 2026-08-23 | Weekly planning is due for the whole of a user's local Sunday evening, not at the single instant of 17:00, and the sweep logs every pass | accepted | Matching one instant gave each user exactly one attempt per week. The first real Sunday in production, a Groq rate limit failed one of two users and cost them the entire week — `generation_failed`, logged as a warning nobody was watching. `generateWeeklyPlan` returns an existing plan before touching quota or the model, so repeated hours in the window are free once it succeeds. The sweep previously logged nothing when it matched nobody, which made a missed week indistinguishable from a broken query; it now logs candidates, matches and timezones on every pass |
+
 ## Deferred decisions (revisit when triggered)
 
 | Topic | Default until then | Trigger to revisit |

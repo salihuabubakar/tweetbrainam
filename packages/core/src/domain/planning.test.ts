@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   inferPostingWindows,
   isPlanningHourInZone,
+  isPlanningWindowInZone,
   localWallClockToUtc,
   mondayOf,
   nextMondayInZone,
@@ -31,6 +32,28 @@ describe("isPlanningHourInZone", () => {
 
   it("falls back to UTC rather than throwing on a bad timezone", () => {
     expect(isPlanningHourInZone(new Date("2026-08-09T17:00:00Z"), "Not/AZone")).toBe(true);
+  });
+});
+
+describe("isPlanningWindowInZone", () => {
+  it("stays open for the rest of the user's local Sunday", () => {
+    // 17:00, 20:00 and 23:00 in Lagos on a Sunday.
+    expect(isPlanningWindowInZone(new Date("2026-08-09T16:00:00Z"), "Africa/Lagos")).toBe(true);
+    expect(isPlanningWindowInZone(new Date("2026-08-09T19:00:00Z"), "Africa/Lagos")).toBe(true);
+    expect(isPlanningWindowInZone(new Date("2026-08-09T22:00:00Z"), "Africa/Lagos")).toBe(true);
+  });
+
+  it("has not opened earlier in the day", () => {
+    expect(isPlanningWindowInZone(new Date("2026-08-09T15:00:00Z"), "Africa/Lagos")).toBe(false);
+  });
+
+  it("closes when the local day rolls over to Monday", () => {
+    // 00:00 Monday in Lagos.
+    expect(isPlanningWindowInZone(new Date("2026-08-09T23:00:00Z"), "Africa/Lagos")).toBe(false);
+  });
+
+  it("ignores every other day of the week", () => {
+    expect(isPlanningWindowInZone(new Date("2026-08-12T20:00:00Z"), "UTC")).toBe(false);
   });
 });
 

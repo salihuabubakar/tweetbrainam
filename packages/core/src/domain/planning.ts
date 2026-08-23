@@ -225,6 +225,16 @@ export function isPlanningHourInZone(instant: Date, timeZone: string): boolean {
   return parts.weekday === PLANNING_WEEKDAY && parts.hour === PLANNING_HOUR;
 }
 
+// A single matching instant gave each user one attempt per week: a transient
+// failure — a rate-limited model, a slow provider — cost them the whole week
+// with no second chance. The window spans the rest of their local Sunday
+// instead, and generateWeeklyPlan returns the existing plan without spending
+// quota or calling the model, so repeated hours cost nothing once it succeeds.
+export function isPlanningWindowInZone(instant: Date, timeZone: string): boolean {
+  const parts = safeZonedParts(instant, timeZone);
+  return parts.weekday === PLANNING_WEEKDAY && parts.hour >= PLANNING_HOUR;
+}
+
 export function isLocalHour(instant: Date, timeZone: string, hour: number): boolean {
   return safeZonedParts(instant, timeZone).hour === hour;
 }

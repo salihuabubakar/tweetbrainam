@@ -1,3 +1,4 @@
+import { IosOAuthHint } from "@/components/marketing/ios-oauth-hint";
 import { Logo } from "@/components/shared/logo";
 import { apiUrl } from "@/lib/api-url";
 import { getCurrentUser } from "@/lib/session";
@@ -29,6 +30,8 @@ export default async function LoginPage() {
         >
           Continue with X
         </a>
+
+        <IosOAuthHint />
 
         <Link
           href="/"

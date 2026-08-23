@@ -14,6 +14,23 @@ const emptyDraft = {
   format: "single" as PostFormatValue,
 };
 
+const MIN_TOPIC = 3;
+const MIN_ANGLE = 10;
+
+// Says what is still missing rather than leaving a disabled button unexplained.
+function shortfall(topic: string, angle: string): string | null {
+  const trimmedTopic = topic.trim();
+  const trimmedAngle = angle.trim();
+
+  if (trimmedTopic.length === 0 && trimmedAngle.length === 0) return null;
+  if (trimmedTopic.length < MIN_TOPIC) return "Give the topic a few more characters.";
+  if (trimmedAngle.length === 0) return "Add the point you want to make.";
+  if (trimmedAngle.length < MIN_ANGLE) {
+    return `A few more words on the point — ${MIN_ANGLE - trimmedAngle.length} to go.`;
+  }
+  return null;
+}
+
 export function ComposeDraft({ onQueued }: { onQueued: () => void }) {
   const toast = useToast();
   const { value: form, setValue: setForm, clear } = useDurableState("drafts.compose", emptyDraft);
@@ -21,7 +38,8 @@ export function ComposeDraft({ onQueued }: { onQueued: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = form.topic.trim().length >= 3 && form.angle.trim().length >= 10;
+  const canSubmit = form.topic.trim().length >= MIN_TOPIC && form.angle.trim().length >= MIN_ANGLE;
+  const missing = shortfall(form.topic, form.angle);
 
   async function submit() {
     setIsSubmitting(true);
@@ -128,7 +146,7 @@ export function ComposeDraft({ onQueued }: { onQueued: () => void }) {
           {isSubmitting ? "Starting…" : "Write it"}
         </Button>
         <span className="self-center text-muted-foreground text-xs">
-          It appears in your queue as it's written.
+          {missing ?? "It appears in your queue as it's written."}
         </span>
         <Button variant="ghost" disabled={isSubmitting} onClick={() => setIsOpen(false)}>
           Cancel
