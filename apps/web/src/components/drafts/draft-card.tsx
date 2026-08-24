@@ -3,6 +3,7 @@
 import { readApiError } from "@/lib/api-error";
 import { apiUrl } from "@/lib/api-url";
 import { useDurableState } from "@/lib/durable-state";
+import { toLocalInput } from "@/lib/local-datetime";
 import type { DraftListItemValue } from "@tweetbrainam/contracts";
 import { Button, cn } from "@tweetbrainam/ui";
 import { useState } from "react";
@@ -10,6 +11,8 @@ import { useState } from "react";
 const MAX_SEGMENT_LENGTH = 280;
 
 type CardState = "reading" | "editing" | "working";
+
+type PendingEdit = { segments: string[]; targetAt: string };
 
 function preview(draft: DraftListItemValue): string {
   const first = draft.currentVersion?.segments[0]?.text ?? "";
@@ -42,12 +45,22 @@ export function DraftCard({
     value: pending,
     setValue: setPending,
     clear: clearPending,
-  } = useDurableState<string[] | null>(`drafts.edit.${draft.id}`, null);
+  } = useDurableState<PendingEdit | null>(`drafts.edit.${draft.id}`, null);
 
-  const original = draft.currentVersion?.segments.map((segment) => segment.text) ?? [];
-  const segments = pending ?? original;
-  const hasUnsaved = pending !== null && JSON.stringify(pending) !== JSON.stringify(original);
+  const originalSegments = draft.currentVersion?.segments.map((segment) => segment.text) ?? [];
+  const originalTargetAt = draft.targetAt ? toLocalInput(draft.targetAt) : "";
+  const segments = pending?.segments ?? originalSegments;
+  const targetAt = pending?.targetAt ?? originalTargetAt;
+  const hasUnsaved =
+    pending !== null &&
+    (JSON.stringify(pending.segments) !== JSON.stringify(originalSegments) ||
+      pending.targetAt !== originalTargetAt);
   const isTooLong = segments.some((text) => text.trim().length > MAX_SEGMENT_LENGTH);
+  const isTargetInvalid = Boolean(draft.planSlotId) && Number.isNaN(new Date(targetAt).getTime());
+
+  function updatePending(next: Partial<PendingEdit>) {
+    setPending({ segments, targetAt, ...next });
+  }
 
   async function call(path: string, init: RequestInit, fallback: string) {
     setState("working");
@@ -75,6 +88,26 @@ export function DraftCard({
       setState("editing");
       return;
     }
+
+    if (draft.planSlotId && targetAt !== originalTargetAt) {
+      const parsed = new Date(targetAt);
+      if (!Number.isNaN(parsed.getTime())) {
+        const rescheduled = await call(
+          `/v1/plans/slots/${draft.planSlotId}`,
+          {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ targetAt: parsed.toISOString() }),
+          },
+          "We couldn't change when it goes out.",
+        );
+        if (!rescheduled) {
+          setState("editing");
+          return;
+        }
+      }
+    }
+
     clearPending();
     setState("reading");
     onChanged();
@@ -134,32 +167,46 @@ export function DraftCard({
       {isOpen ? (
         <div className="flex flex-col gap-3">
           {state === "editing" ? (
-            segments.map((text, index) => (
-              <div key={`${draft.id}-${index}`} className="flex flex-col gap-1">
-                <textarea
-                  value={text}
-                  rows={4}
-                  onChange={(event) =>
-                    setPending(
-                      segments.map((existing, position) =>
-                        position === index ? event.target.value : existing,
-                      ),
-                    )
-                  }
-                  className="rounded-md border border-border bg-background p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-                <span
-                  className={cn(
-                    "self-end text-xs tabular-nums",
-                    text.trim().length > MAX_SEGMENT_LENGTH
-                      ? "text-destructive"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {text.trim().length}/{MAX_SEGMENT_LENGTH}
-                </span>
-              </div>
-            ))
+            <>
+              {draft.planSlotId ? (
+                <label className="flex flex-col gap-1 text-sm" htmlFor={`draft-time-${draft.id}`}>
+                  When it goes out
+                  <input
+                    id={`draft-time-${draft.id}`}
+                    type="datetime-local"
+                    value={targetAt}
+                    onChange={(event) => updatePending({ targetAt: event.target.value })}
+                    className="h-9 w-fit rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                </label>
+              ) : null}
+              {segments.map((text, index) => (
+                <div key={`${draft.id}-${index}`} className="flex flex-col gap-1">
+                  <textarea
+                    value={text}
+                    rows={4}
+                    onChange={(event) =>
+                      updatePending({
+                        segments: segments.map((existing, position) =>
+                          position === index ? event.target.value : existing,
+                        ),
+                      })
+                    }
+                    className="rounded-md border border-border bg-background p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                  <span
+                    className={cn(
+                      "self-end text-xs tabular-nums",
+                      text.trim().length > MAX_SEGMENT_LENGTH
+                        ? "text-destructive"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {text.trim().length}/{MAX_SEGMENT_LENGTH}
+                  </span>
+                </div>
+              ))}
+            </>
           ) : (
             <ol className="flex flex-col gap-2">
               {segments.map((text, index) => (
@@ -182,7 +229,7 @@ export function DraftCard({
           <div className="flex flex-wrap gap-2">
             {state === "editing" ? (
               <>
-                <Button disabled={isTooLong} onClick={saveEdits}>
+                <Button disabled={isTooLong || isTargetInvalid} onClick={saveEdits}>
                   Save changes
                 </Button>
                 <Button

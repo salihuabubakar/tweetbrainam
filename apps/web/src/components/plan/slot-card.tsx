@@ -3,6 +3,7 @@
 import { useToast } from "@/components/shared/toast";
 import { readApiError } from "@/lib/api-error";
 import { apiUrl } from "@/lib/api-url";
+import { toLocalInput } from "@/lib/local-datetime";
 import type { PlanSlotValue, PostFormatValue } from "@tweetbrainam/contracts";
 import { Button, cn } from "@tweetbrainam/ui";
 import { useState } from "react";
@@ -27,17 +28,6 @@ const busyLabels: Record<SlotAction, string> = {
   restore: "Restoring…",
   remove: "Removing…",
 };
-
-// <input type="datetime-local"> speaks local wall-clock time with no zone, so
-// both directions go through the browser's own timezone — which is the one the
-// user is reading the slot time in.
-function toLocalInput(value: string | Date): string {
-  const date = new Date(value);
-  const pad = (part: number) => String(part).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
-    date.getHours(),
-  )}:${pad(date.getMinutes())}`;
-}
 
 function timeOfDayLabel(date: Date): string {
   const hour = date.getHours();
