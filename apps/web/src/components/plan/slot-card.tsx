@@ -28,6 +28,17 @@ const busyLabels: Record<SlotAction, string> = {
   remove: "Removing…",
 };
 
+// <input type="datetime-local"> speaks local wall-clock time with no zone, so
+// both directions go through the browser's own timezone — which is the one the
+// user is reading the slot time in.
+function toLocalInput(value: string | Date): string {
+  const date = new Date(value);
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours(),
+  )}:${pad(date.getMinutes())}`;
+}
+
 function timeOfDayLabel(date: Date): string {
   const hour = date.getHours();
   if (hour < 12) return "Morning";
@@ -41,7 +52,12 @@ export function SlotCard({ slot, onChanged }: { slot: PlanSlotValue; onChanged: 
   const [busy, setBusy] = useState<SlotAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const isBusy = busy !== null;
-  const [form, setForm] = useState({ topic: slot.topic, angle: slot.angle, format: slot.format });
+  const [form, setForm] = useState({
+    topic: slot.topic,
+    angle: slot.angle,
+    format: slot.format,
+    targetAt: toLocalInput(slot.targetAt),
+  });
 
   const date = new Date(slot.targetAt);
   const isCommitted = COMMITTED.includes(slot.status);
@@ -64,6 +80,9 @@ export function SlotCard({ slot, onChanged }: { slot: PlanSlotValue; onChanged: 
   }
 
   async function save() {
+    const parsed = new Date(form.targetAt);
+    const scheduledAt = Number.isNaN(parsed.getTime()) ? null : parsed;
+
     const ok = await call("save", `/v1/plans/slots/${slot.id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -71,6 +90,7 @@ export function SlotCard({ slot, onChanged }: { slot: PlanSlotValue; onChanged: 
         topic: form.topic.trim(),
         angle: form.angle.trim(),
         format: form.format,
+        ...(scheduledAt ? { targetAt: scheduledAt.toISOString() } : {}),
       }),
     });
     if (!ok) return;
@@ -122,6 +142,17 @@ export function SlotCard({ slot, onChanged }: { slot: PlanSlotValue; onChanged: 
           />
         </label>
 
+        <label className="flex flex-col gap-1 text-sm" htmlFor={`time-${slot.id}`}>
+          When it goes out
+          <input
+            id={`time-${slot.id}`}
+            type="datetime-local"
+            value={form.targetAt}
+            onChange={(event) => setForm({ ...form, targetAt: event.target.value })}
+            className="h-9 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </label>
+
         <div className="flex gap-2">
           {(["single", "thread"] as PostFormatValue[]).map((format) => (
             <button
@@ -160,7 +191,12 @@ export function SlotCard({ slot, onChanged }: { slot: PlanSlotValue; onChanged: 
             variant="ghost"
             disabled={isBusy}
             onClick={() => {
-              setForm({ topic: slot.topic, angle: slot.angle, format: slot.format });
+              setForm({
+                topic: slot.topic,
+                angle: slot.angle,
+                format: slot.format,
+                targetAt: toLocalInput(slot.targetAt),
+              });
               setIsEditing(false);
               setError(null);
             }}
