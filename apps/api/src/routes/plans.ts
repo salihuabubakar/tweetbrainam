@@ -51,68 +51,70 @@ function resolveWeekStart(
 }
 
 export function createPlanRoutes(deps: AppDeps) {
-  return new Hono<AppEnv>()
-    .get("/v1/plans/current", async (c) => {
-      const userId = requireUserId(c.get("userId"));
-      const account = await deps.ingestion.findAccountByUserId(userId);
-      if (!account) throw notFound("No connected X account.");
+  return (
+    new Hono<AppEnv>()
+      .get("/v1/plans/current", async (c) => {
+        const userId = requireUserId(c.get("userId"));
+        const account = await deps.ingestion.findAccountByUserId(userId);
+        if (!account) throw notFound("No connected X account.");
 
-      const weekStart = resolveWeekStart(c.req.query("weekStart"), c.req.query("week"), deps);
-      const plan = await deps.plans.findPlanByWeek(account.id, weekStart);
-      return c.json({ plan, weekStart });
-    })
+        const weekStart = resolveWeekStart(c.req.query("weekStart"), c.req.query("week"), deps);
+        const plan = await deps.plans.findPlanByWeek(account.id, weekStart);
+        return c.json({ plan, weekStart });
+      })
 
-    // Without an explicit week this fell back to mondayOf(now), so asking for
-    // next week's plan from the next-week tab quietly planned the current one.
-    .post("/v1/plans/generate", async (c) => {
-      const userId = requireUserId(c.get("userId"));
-      await requireQuota(deps, { userId, metric: "plan_generated" });
+      // Without an explicit week this fell back to mondayOf(now), so asking for
+      // next week's plan from the next-week tab quietly planned the current one.
+      .post("/v1/plans/generate", async (c) => {
+        const userId = requireUserId(c.get("userId"));
+        await requireQuota(deps, { userId, metric: "plan_generated" });
 
-      const weekStart = resolveWeekStart(c.req.query("weekStart"), c.req.query("week"), deps);
-      await deps.jobs.startWeeklyPlanGeneration(userId, weekStart);
-      return c.json({ ok: true, weekStart }, 202);
-    })
+        const weekStart = resolveWeekStart(c.req.query("weekStart"), c.req.query("week"), deps);
+        await deps.jobs.startWeeklyPlanGeneration(userId, weekStart);
+        return c.json({ ok: true, weekStart }, 202);
+      })
 
-    .post("/v1/plans/:id/slots", zValidator("json", addPlanSlotInputSchema), async (c) => {
-      const userId = requireUserId(c.get("userId"));
-      const result = await addPlanSlot(deps, {
-        userId,
-        planId: c.req.param("id"),
-        ...c.req.valid("json"),
-      });
-      if (!result.ok) throw toApiError(result.error);
-      return c.json({ slot: result.value }, 201);
-    })
+      .post("/v1/plans/:id/slots", zValidator("json", addPlanSlotInputSchema), async (c) => {
+        const userId = requireUserId(c.get("userId"));
+        const result = await addPlanSlot(deps, {
+          userId,
+          planId: c.req.param("id"),
+          ...c.req.valid("json"),
+        });
+        if (!result.ok) throw toApiError(result.error);
+        return c.json({ slot: result.value }, 201);
+      })
 
-    .patch("/v1/plans/slots/:id", zValidator("json", updatePlanSlotInputSchema), async (c) => {
-      const userId = requireUserId(c.get("userId"));
-      const result = await updatePlanSlot(deps, {
-        userId,
-        slotId: c.req.param("id"),
-        ...c.req.valid("json"),
-      });
-      if (!result.ok) throw toApiError(result.error);
-      return c.json({ slot: result.value });
-    })
+      .patch("/v1/plans/slots/:id", zValidator("json", updatePlanSlotInputSchema), async (c) => {
+        const userId = requireUserId(c.get("userId"));
+        const result = await updatePlanSlot(deps, {
+          userId,
+          slotId: c.req.param("id"),
+          ...c.req.valid("json"),
+        });
+        if (!result.ok) throw toApiError(result.error);
+        return c.json({ slot: result.value });
+      })
 
-    .post("/v1/plans/slots/:id/skip", async (c) => {
-      const userId = requireUserId(c.get("userId"));
-      const result = await skipPlanSlot(deps, { userId, slotId: c.req.param("id") });
-      if (!result.ok) throw toApiError(result.error);
-      return c.json(result.value);
-    })
+      .post("/v1/plans/slots/:id/skip", async (c) => {
+        const userId = requireUserId(c.get("userId"));
+        const result = await skipPlanSlot(deps, { userId, slotId: c.req.param("id") });
+        if (!result.ok) throw toApiError(result.error);
+        return c.json(result.value);
+      })
 
-    .post("/v1/plans/slots/:id/restore", async (c) => {
-      const userId = requireUserId(c.get("userId"));
-      const result = await restorePlanSlot(deps, { userId, slotId: c.req.param("id") });
-      if (!result.ok) throw toApiError(result.error);
-      return c.json(result.value);
-    })
+      .post("/v1/plans/slots/:id/restore", async (c) => {
+        const userId = requireUserId(c.get("userId"));
+        const result = await restorePlanSlot(deps, { userId, slotId: c.req.param("id") });
+        if (!result.ok) throw toApiError(result.error);
+        return c.json(result.value);
+      })
 
-    .delete("/v1/plans/slots/:id", async (c) => {
-      const userId = requireUserId(c.get("userId"));
-      const result = await removePlanSlot(deps, { userId, slotId: c.req.param("id") });
-      if (!result.ok) throw toApiError(result.error);
-      return c.json(result.value);
-    });
+      .delete("/v1/plans/slots/:id", async (c) => {
+        const userId = requireUserId(c.get("userId"));
+        const result = await removePlanSlot(deps, { userId, slotId: c.req.param("id") });
+        if (!result.ok) throw toApiError(result.error);
+        return c.json(result.value);
+      })
+  );
 }

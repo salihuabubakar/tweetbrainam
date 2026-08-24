@@ -156,9 +156,7 @@ export function WeekPlan({
       <div className="flex flex-1 flex-col items-center">
         <span className="font-medium text-sm">{relative ?? weekLabel(weekStart)}</span>
         {relative ? (
-          <span className="text-muted-foreground text-xs tabular-nums">
-            {weekLabel(weekStart)}
-          </span>
+          <span className="text-muted-foreground text-xs tabular-nums">{weekLabel(weekStart)}</span>
         ) : null}
       </div>
 
