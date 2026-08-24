@@ -28,12 +28,15 @@ export function createTriggerJobRunner(isEnabled: boolean): JobRunner {
       await tasks.trigger("extract-memory", { userId });
     },
 
-    async startWeeklyPlanGeneration(userId) {
+    async startWeeklyPlanGeneration(userId, weekStart) {
       if (!isEnabled) {
         logger.warn({ userId }, "weekly plan skipped: TRIGGER_SECRET_KEY not configured");
         return;
       }
-      await tasks.trigger("generate-weekly-plan", { userId });
+      await tasks.trigger("generate-weekly-plan", {
+        userId,
+        ...(weekStart ? { weekStart } : {}),
+      });
     },
 
     async startDraftGeneration(userId, input) {

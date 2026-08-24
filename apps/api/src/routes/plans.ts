@@ -30,6 +30,26 @@ const toApiError = (error: DomainError): ApiError => {
   }
 };
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+// An explicit weekStart lets the client browse any week. It is snapped to the
+// Monday of whatever date arrives, so a malformed or mid-week value reads a real
+// week rather than returning nothing. `week=this|next` stays supported for the
+// onboarding step, which has no week picker.
+function resolveWeekStart(
+  weekStart: string | undefined,
+  week: string | undefined,
+  deps: AppDeps,
+): string {
+  if (weekStart && ISO_DATE.test(weekStart)) {
+    const parsed = new Date(`${weekStart}T00:00:00Z`);
+    if (!Number.isNaN(parsed.getTime())) return mondayOf(parsed);
+  }
+
+  const now = deps.clock.now();
+  return week === "next" ? nextMondayOf(now) : mondayOf(now);
+}
+
 export function createPlanRoutes(deps: AppDeps) {
   return new Hono<AppEnv>()
     .get("/v1/plans/current", async (c) => {
@@ -37,19 +57,20 @@ export function createPlanRoutes(deps: AppDeps) {
       const account = await deps.ingestion.findAccountByUserId(userId);
       if (!account) throw notFound("No connected X account.");
 
-      const week = c.req.query("week") === "next" ? "next" : "this";
-      const now = deps.clock.now();
-      const weekStart = week === "next" ? nextMondayOf(now) : mondayOf(now);
-
+      const weekStart = resolveWeekStart(c.req.query("weekStart"), c.req.query("week"), deps);
       const plan = await deps.plans.findPlanByWeek(account.id, weekStart);
-      return c.json({ plan, week, weekStart });
+      return c.json({ plan, weekStart });
     })
 
+    // Without an explicit week this fell back to mondayOf(now), so asking for
+    // next week's plan from the next-week tab quietly planned the current one.
     .post("/v1/plans/generate", async (c) => {
       const userId = requireUserId(c.get("userId"));
       await requireQuota(deps, { userId, metric: "plan_generated" });
-      await deps.jobs.startWeeklyPlanGeneration(userId);
-      return c.json({ ok: true }, 202);
+
+      const weekStart = resolveWeekStart(c.req.query("weekStart"), c.req.query("week"), deps);
+      await deps.jobs.startWeeklyPlanGeneration(userId, weekStart);
+      return c.json({ ok: true, weekStart }, 202);
     })
 
     .post("/v1/plans/:id/slots", zValidator("json", addPlanSlotInputSchema), async (c) => {

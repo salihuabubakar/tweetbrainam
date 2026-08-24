@@ -4,7 +4,7 @@ export type JobRunner = {
   startAccountAnalysis(userId: string): Promise<void>;
   startVoiceProfileBuild(userId: string): Promise<void>;
   startMemoryExtraction(userId: string): Promise<void>;
-  startWeeklyPlanGeneration(userId: string): Promise<void>;
+  startWeeklyPlanGeneration(userId: string, weekStart?: string): Promise<void>;
   startDraftGeneration(
     userId: string,
     input: {

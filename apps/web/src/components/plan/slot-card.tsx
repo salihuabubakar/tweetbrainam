@@ -18,6 +18,16 @@ const statusLabels: Record<PlanSlotValue["status"], string> = {
 
 const COMMITTED: PlanSlotValue["status"][] = ["approved", "published"];
 
+type SlotAction = "save" | "draft" | "skip" | "restore" | "remove";
+
+const busyLabels: Record<SlotAction, string> = {
+  save: "Saving…",
+  draft: "Starting…",
+  skip: "Skipping…",
+  restore: "Restoring…",
+  remove: "Removing…",
+};
+
 function timeOfDayLabel(date: Date): string {
   const hour = date.getHours();
   if (hour < 12) return "Morning";
@@ -28,29 +38,33 @@ function timeOfDayLabel(date: Date): string {
 export function SlotCard({ slot, onChanged }: { slot: PlanSlotValue; onChanged: () => void }) {
   const toast = useToast();
   const [isEditing, setIsEditing] = useState(false);
-  const [isBusy, setIsBusy] = useState(false);
+  const [busy, setBusy] = useState<SlotAction | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const isBusy = busy !== null;
   const [form, setForm] = useState({ topic: slot.topic, angle: slot.angle, format: slot.format });
 
   const date = new Date(slot.targetAt);
   const isCommitted = COMMITTED.includes(slot.status);
   const canEdit = !isCommitted;
 
-  async function call(path: string, init: RequestInit) {
-    setIsBusy(true);
+  async function call(action: SlotAction, path: string, init: RequestInit) {
+    setBusy(action);
     setError(null);
-    const response = await fetch(`${apiUrl}${path}`, { credentials: "include", ...init });
-    setIsBusy(false);
 
-    if (!response.ok) {
-      setError(await readApiError(response, "That didn't work."));
-      return false;
+    try {
+      const response = await fetch(`${apiUrl}${path}`, { credentials: "include", ...init });
+      if (!response.ok) {
+        setError(await readApiError(response, "That didn't work."));
+        return false;
+      }
+      return true;
+    } finally {
+      setBusy(null);
     }
-    return true;
   }
 
   async function save() {
-    const ok = await call(`/v1/plans/slots/${slot.id}`, {
+    const ok = await call("save", `/v1/plans/slots/${slot.id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -64,13 +78,13 @@ export function SlotCard({ slot, onChanged }: { slot: PlanSlotValue; onChanged: 
     onChanged();
   }
 
-  async function act(path: string, method = "POST") {
-    const ok = await call(path, { method });
+  async function act(action: SlotAction, path: string, method = "POST") {
+    const ok = await call(action, path, { method });
     if (ok) onChanged();
   }
 
   async function requestDraft() {
-    const ok = await call(`/v1/plans/slots/${slot.id}/draft`, {
+    const ok = await call("draft", `/v1/plans/slots/${slot.id}/draft`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: "{}",
@@ -139,7 +153,7 @@ export function SlotCard({ slot, onChanged }: { slot: PlanSlotValue; onChanged: 
             disabled={isBusy || form.topic.trim().length < 3 || form.angle.trim().length < 10}
             onClick={save}
           >
-            Save
+            {busy === "save" ? busyLabels.save : "Save"}
           </Button>
           <Button
             size="sm"
@@ -206,10 +220,10 @@ export function SlotCard({ slot, onChanged }: { slot: PlanSlotValue; onChanged: 
             <button
               type="button"
               disabled={isBusy}
-              onClick={() => act(`/v1/plans/slots/${slot.id}/restore`)}
-              className="text-muted-foreground hover:text-foreground"
+              onClick={() => act("restore", `/v1/plans/slots/${slot.id}/restore`)}
+              className="text-muted-foreground hover:text-foreground disabled:opacity-50"
             >
-              Put it back
+              {busy === "restore" ? busyLabels.restore : "Put it back"}
             </button>
           ) : (
             <>
@@ -217,7 +231,7 @@ export function SlotCard({ slot, onChanged }: { slot: PlanSlotValue; onChanged: 
                 type="button"
                 disabled={isBusy || !canEdit}
                 onClick={() => setIsEditing(true)}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground disabled:opacity-50"
               >
                 Change topic
               </button>
@@ -225,27 +239,31 @@ export function SlotCard({ slot, onChanged }: { slot: PlanSlotValue; onChanged: 
                 type="button"
                 disabled={isBusy || slot.status === "drafting"}
                 onClick={requestDraft}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground disabled:opacity-50"
               >
-                {slot.status === "ready" ? "Write it again" : "Write it now"}
+                {busy === "draft"
+                  ? busyLabels.draft
+                  : slot.status === "ready"
+                    ? "Write it again"
+                    : "Write it now"}
               </button>
               <button
                 type="button"
                 disabled={isBusy}
-                onClick={() => act(`/v1/plans/slots/${slot.id}/skip`)}
-                className="text-muted-foreground hover:text-foreground"
+                onClick={() => act("skip", `/v1/plans/slots/${slot.id}/skip`)}
+                className="text-muted-foreground hover:text-foreground disabled:opacity-50"
               >
-                Skip this week
+                {busy === "skip" ? busyLabels.skip : "Skip this week"}
               </button>
             </>
           )}
           <button
             type="button"
             disabled={isBusy}
-            onClick={() => act(`/v1/plans/slots/${slot.id}`, "DELETE")}
-            className="text-muted-foreground hover:text-destructive"
+            onClick={() => act("remove", `/v1/plans/slots/${slot.id}`, "DELETE")}
+            className="text-muted-foreground hover:text-destructive disabled:opacity-50"
           >
-            Remove
+            {busy === "remove" ? busyLabels.remove : "Remove"}
           </button>
         </div>
       )}

@@ -1,10 +1,8 @@
 "use client";
 
-import { type Tab, TabBar } from "@/components/shared/tab-bar";
 import { useToast } from "@/components/shared/toast";
 import { readApiError } from "@/lib/api-error";
 import { apiUrl } from "@/lib/api-url";
-import { useDurableState } from "@/lib/durable-state";
 import type { ContentPlanValue, PlanSlotValue } from "@tweetbrainam/contracts";
 import { Button } from "@tweetbrainam/ui";
 import { useCallback, useEffect, useState } from "react";
@@ -37,18 +35,47 @@ function groupByDay(slots: PlanSlotValue[]) {
   return [...days.values()];
 }
 
-type Week = "this" | "next";
-
 type PlanResponse = {
   plan: ContentPlanValue | null;
-  week: Week;
   weekStart: string;
 };
 
-const weekTabs: Tab<Week>[] = [
-  { value: "this", label: "This week" },
-  { value: "next", label: "Next week" },
-];
+const pad = (value: number) => String(value).padStart(2, "0");
+
+const toIsoDate = (date: Date) =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+// Computed in the browser's own timezone and sent explicitly, so what the user
+// sees labelled as a week is exactly the week the server reads.
+function mondayOf(date: Date): string {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() - ((copy.getDay() + 6) % 7));
+  return toIsoDate(copy);
+}
+
+function shiftWeeks(weekStart: string, weeks: number): string {
+  const date = new Date(`${weekStart}T00:00:00`);
+  date.setDate(date.getDate() + weeks * 7);
+  return toIsoDate(date);
+}
+
+function weekLabel(weekStart: string): string {
+  const start = new Date(`${weekStart}T00:00:00`);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+
+  const day = (date: Date) =>
+    date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+
+  return `${day(start)} – ${day(end)}`;
+}
+
+function relativeLabel(weekStart: string, currentWeek: string): string | null {
+  if (weekStart === currentWeek) return "This week";
+  if (weekStart === shiftWeeks(currentWeek, 1)) return "Next week";
+  if (weekStart === shiftWeeks(currentWeek, -1)) return "Last week";
+  return null;
+}
 
 export function WeekPlan({
   onReady,
@@ -58,15 +85,19 @@ export function WeekPlan({
   showWeekSwitcher?: boolean;
 }) {
   const toast = useToast();
-  const { value: week, setValue: setWeek } = useDurableState<Week>("plan:week", "this");
+  // Deliberately not durable: coming back days later should land on the current
+  // week, not on whichever week was last being browsed.
+  const [currentWeek] = useState(() => mondayOf(new Date()));
+  const [weekStart, setWeekStart] = useState(currentWeek);
   const [plan, setPlan] = useState<ContentPlanValue | null>(null);
-  const [weekStart, setWeekStart] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isPast = weekStart < currentWeek;
+
   const load = useCallback(async () => {
-    const response = await fetch(`${apiUrl}/v1/plans/current?week=${week}`, {
+    const response = await fetch(`${apiUrl}/v1/plans/current?weekStart=${weekStart}`, {
       credentials: "include",
     });
     if (!response.ok) return;
@@ -74,12 +105,11 @@ export function WeekPlan({
 
     setHasChecked(true);
     setPlan(body.plan);
-    setWeekStart(body.weekStart);
     if (body.plan) {
       setIsGenerating(false);
       onReady?.(body.plan);
     }
-  }, [onReady, week]);
+  }, [onReady, weekStart]);
 
   useEffect(() => {
     setPlan(null);
@@ -94,7 +124,7 @@ export function WeekPlan({
     setIsGenerating(true);
     setError(null);
 
-    const response = await fetch(`${apiUrl}/v1/plans/generate`, {
+    const response = await fetch(`${apiUrl}/v1/plans/generate?weekStart=${weekStart}`, {
       method: "POST",
       credentials: "include",
     });
@@ -106,12 +136,47 @@ export function WeekPlan({
     }
 
     toast({
-      message: "Planning your week — the slots will fill in here as they're decided.",
+      message: `Planning ${weekLabel(weekStart)} — the slots will fill in here as they're decided.`,
     });
   }
 
+  const relative = relativeLabel(weekStart, currentWeek);
+
   const switcher = showWeekSwitcher ? (
-    <TabBar tabs={weekTabs} active={week} onSelect={setWeek} label="Plan week" />
+    <div className="flex items-center gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        aria-label="Previous week"
+        onClick={() => setWeekStart(shiftWeeks(weekStart, -1))}
+      >
+        ←
+      </Button>
+
+      <div className="flex flex-1 flex-col items-center">
+        <span className="font-medium text-sm">{relative ?? weekLabel(weekStart)}</span>
+        {relative ? (
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {weekLabel(weekStart)}
+          </span>
+        ) : null}
+      </div>
+
+      <Button
+        variant="outline"
+        size="sm"
+        aria-label="Next week"
+        onClick={() => setWeekStart(shiftWeeks(weekStart, 1))}
+      >
+        →
+      </Button>
+
+      {weekStart !== currentWeek ? (
+        <Button variant="ghost" size="sm" onClick={() => setWeekStart(currentWeek)}>
+          Today
+        </Button>
+      ) : null}
+    </div>
   ) : null;
 
   if (plan) {
@@ -140,7 +205,7 @@ export function WeekPlan({
           ))}
         </div>
 
-        <AddSlot planId={plan.id} weekStart={weekStart} onAdded={load} />
+        {isPast ? null : <AddSlot planId={plan.id} weekStart={weekStart} onAdded={load} />}
       </div>
     );
   }
@@ -151,12 +216,14 @@ export function WeekPlan({
       <div className="flex flex-col items-center gap-4 rounded-lg border border-border border-dashed py-12 text-center">
         <p className="text-muted-foreground text-sm">
           {isGenerating
-            ? "Choosing what you should write about this week…"
+            ? "Choosing what you should write about…"
             : !hasChecked
               ? "Checking your plan…"
-              : week === "next"
-                ? "Next week isn't planned yet. We put it together every Sunday evening."
-                : "No plan for this week yet."}
+              : isPast
+                ? "Nothing was planned for this week."
+                : relative === "Next week"
+                  ? "Next week isn't planned yet. We put it together on Sunday evening — or you can do it now."
+                  : "No plan for this week yet."}
         </p>
 
         {error ? (
@@ -165,9 +232,13 @@ export function WeekPlan({
           </p>
         ) : null}
 
-        {hasChecked && week === "this" && (
+        {hasChecked && !isPast && (
           <Button disabled={isGenerating} onClick={handleGenerate}>
-            {isGenerating ? "Planning…" : "Plan my week"}
+            {isGenerating
+              ? "Planning…"
+              : relative === "Next week"
+                ? "Plan next week"
+                : "Plan my week"}
           </Button>
         )}
       </div>
