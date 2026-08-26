@@ -18,19 +18,21 @@ export const generateDraftTask = schemaTask({
     guidance: z.string().optional(),
   }),
   maxDuration: 300,
-  run: async (payload) => {
+  run: async (payload, { ctx }) => {
     const draftDeps = createDraftDeps();
     const result = await generateDraft(draftDeps, {
       userId: payload.userId,
       ...(payload.planSlotId ? { planSlotId: payload.planSlotId } : {}),
       ...(payload.brief ? { brief: payload.brief } : {}),
       ...(payload.guidance ? { guidance: payload.guidance } : {}),
+      isFinalAttempt: false,
     });
 
     if (!result.ok) {
       logger.error("draft failed", {
         planSlotId: payload.planSlotId ?? null,
         code: result.error.code,
+        attempt: ctx.attempt.number,
       });
       throw new Error(result.error.message);
     }
@@ -55,5 +57,19 @@ export const generateDraftTask = schemaTask({
     }
 
     return { draftId: result.value.draft.id };
+  },
+  onFailure: async ({ payload }) => {
+    const draftDeps = createDraftDeps();
+    const account = await draftDeps.ingestion.findAccountByUserId(payload.userId);
+    if (!account) return;
+
+    const generating = await draftDeps.drafts.listForAccount(account.id, "generating");
+    const draft = generating.find((d) => d.planSlotId === (payload.planSlotId ?? null));
+    if (!draft) return;
+
+    await draftDeps.drafts.setStatus(draft.id, "failed");
+    if (payload.planSlotId) {
+      await draftDeps.plans.updateSlotStatus(payload.planSlotId, "empty");
+    }
   },
 });

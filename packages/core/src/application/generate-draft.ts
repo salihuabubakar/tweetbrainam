@@ -59,6 +59,7 @@ export type GenerateDraftInput = {
   planSlotId?: string | undefined;
   brief?: DraftBrief | undefined;
   guidance?: string | undefined;
+  isFinalAttempt?: boolean;
 };
 
 export type GenerateDraftOutput = {
@@ -134,8 +135,10 @@ export async function generateDraft(
   });
 
   if (!generated.ok) {
-    await deps.drafts.setStatus(draft.id, "failed");
-    if (slot) await deps.plans.updateSlotStatus(slot.id, "empty");
+    if (input.isFinalAttempt ?? true) {
+      await deps.drafts.setStatus(draft.id, "failed");
+      if (slot) await deps.plans.updateSlotStatus(slot.id, "empty");
+    }
     return err(domainError("generation_failed", generated.error.detail));
   }
 

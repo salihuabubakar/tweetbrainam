@@ -13,7 +13,8 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "boundaries": "depcruise apps/api/src apps/jobs/src apps/web/src packages/ai/src packages/contracts/src packages/core/src packages/db/src packages/notifications/src packages/ui/src packages/x-api/src --config .dependency-cruiser.cjs",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm boundaries"
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm boundaries",
+    "deploy:jobs": "pnpm --filter @tweetbrainam/jobs run deploy"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

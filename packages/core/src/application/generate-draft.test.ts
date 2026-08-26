@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Draft } from "../domain/drafting";
-import { ok } from "../lib/result";
+import { err, ok } from "../lib/result";
 import type { AIProvider } from "../ports/ai-provider";
 import type { DraftRepository } from "../ports/draft-repository";
 import type { IngestionRepository } from "../ports/ingestion-repository";
@@ -20,8 +20,11 @@ const slot = {
   position: 0,
 };
 
-function makeDeps(options: { slotExists?: boolean } = {}) {
+function makeDeps(
+  options: { slotExists?: boolean; aiResult?: ReturnType<typeof ok> | ReturnType<typeof err> } = {},
+) {
   const slotStatuses: string[] = [];
+  const draftStatuses: string[] = [];
   const created: (string | null)[] = [];
   let promptTopic = "";
 
@@ -33,7 +36,9 @@ function makeDeps(options: { slotExists?: boolean } = {}) {
       created.push(planSlotId);
       return { ...draft, planSlotId };
     },
-    setStatus: async () => {},
+    setStatus: async (_id: string, status: string) => {
+      draftStatuses.push(status);
+    },
     addVersion: async (_id: string, segments: { text: string }[]) => ({
       ...draft,
       currentVersion: {
@@ -99,6 +104,7 @@ function makeDeps(options: { slotExists?: boolean } = {}) {
     clock: { now: () => new Date("2026-08-06T12:00:00Z") },
     ai: {
       generateObject: async () =>
+        options.aiResult ??
         ok({
           value: { segments: [{ text: "A post." }] },
           usage: { provider: "test", model: "m", inputTokens: 1, outputTokens: 1, latencyMs: 1 },
@@ -110,7 +116,7 @@ function makeDeps(options: { slotExists?: boolean } = {}) {
     },
   } as unknown as GenerateDraftDeps;
 
-  return { deps, slotStatuses, created, getPromptTopic: () => promptTopic };
+  return { deps, slotStatuses, draftStatuses, created, getPromptTopic: () => promptTopic };
 }
 
 describe("generateDraft", () => {
@@ -165,5 +171,48 @@ describe("generateDraft", () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("not_found");
+  });
+
+  it("leaves the draft and slot generating on a non-final failed attempt so a retry is invisible", async () => {
+    const { deps, slotStatuses, draftStatuses } = makeDeps({
+      aiResult: err({ kind: "invalid_output", detail: "bad json" }),
+    });
+
+    const result = await generateDraft(deps, {
+      userId: "u1",
+      planSlotId: "slot-1",
+      isFinalAttempt: false,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(slotStatuses).toEqual(["drafting"]);
+    expect(draftStatuses).toEqual(["generating"]);
+  });
+
+  it("marks the draft and slot failed once the final attempt fails", async () => {
+    const { deps, slotStatuses, draftStatuses } = makeDeps({
+      aiResult: err({ kind: "invalid_output", detail: "bad json" }),
+    });
+
+    const result = await generateDraft(deps, {
+      userId: "u1",
+      planSlotId: "slot-1",
+      isFinalAttempt: true,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(slotStatuses).toEqual(["drafting", "empty"]);
+    expect(draftStatuses).toEqual(["generating", "failed"]);
+  });
+
+  it("defaults to treating a failure as final when the caller doesn't say otherwise", async () => {
+    const { deps, slotStatuses, draftStatuses } = makeDeps({
+      aiResult: err({ kind: "invalid_output", detail: "bad json" }),
+    });
+
+    await generateDraft(deps, { userId: "u1", planSlotId: "slot-1" });
+
+    expect(slotStatuses).toEqual(["drafting", "empty"]);
+    expect(draftStatuses).toEqual(["generating", "failed"]);
   });
 });

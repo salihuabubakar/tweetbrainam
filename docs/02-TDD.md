@@ -62,7 +62,7 @@ Three deployable units — `web`, `api`, `jobs` — sharing typed packages from 
 
 ### 3.3 Weekly plan → drafts
 1. Scheduled task per user (their configured day/time): `generate-weekly-plan` — inputs: Voice DNA, memory facts, cadence, goals, recent performance, recent topics (anti-repetition) → creates `content_plans` + `plan_slots`.
-2. `generate-draft` per slot (fan-out): prompt = voice profile + slot brief + few-shot user posts (vector-retrieved similar posts) → `drafts` (version 1) with `ai_generations` audit row (model, tokens, cost, latency).
+2. `generate-draft` per slot (fan-out): prompt = voice profile + slot brief + few-shot user posts (vector-retrieved similar posts) → `drafts` (version 1) with `ai_generations` audit row (model, tokens, cost, latency). Retries: task-level default (3 attempts, exponential backoff). A failed attempt that will be retried leaves the draft/slot in `generating`/`drafting` — the use-case only writes the terminal `failed`/`empty` state once retries are exhausted (via the task's `onFailure` hook), so polling clients never see the status flap mid-retry.
 3. User edits create new `draft_versions`; the diff between AI text and approved text becomes a `learning_signals` row.
 
 ### 3.4 Publishing
